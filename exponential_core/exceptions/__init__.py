@@ -13,6 +13,7 @@ from exponential_core.exceptions.types import (
     SecretAlreadyExistsError,
     SecretsNotFound,
     MissingSecretKey,
+    AWSConnectionError
 )
 
 from . import types
@@ -30,6 +31,7 @@ __all__ = [
     "SecretAlreadyExistsError",
     "SecretsNotFound",
     "MissingSecretKey",
+    "AWSConnectionError"
 ]
 
 # 👇 Dinámico para futuros tipos sin romper compatibilidad

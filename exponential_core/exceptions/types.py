@@ -71,3 +71,8 @@ class MissingSecretKey(CustomAppException):
             status_code=500,
             data={"client_vat": client_vat, "missing_key": key},
         )
+
+
+class AWSConnectionError(CustomAppException):
+    def __init__(self, detail: str = "Error al conectar con AWS Secrets Manager"):
+        super().__init__(message=detail, status_code=500)

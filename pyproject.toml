@@ -1,6 +1,6 @@
 [project]
 name = "exponential-core"
-version = "1.0.0"
+version = "1.1.0"
 description = "Librería compartida para excepciones, logging y utilidades comunes de Exponential IT"
 authors = [{ name = "Equipo Exponential IT", email = "john.rincon@exponentialit.net" }]
 readme = "README.md"
@@ -13,7 +13,7 @@ dependencies = [
     "httpx",
     "pydantic",
     "colorlog",
-    "boto3"
+    "aioboto3"
 ]
 
 classifiers = [
@@ -44,3 +44,14 @@ exclude = ["tests*", "docs*", "env*", "__pycache__*"]
 minversion = "6.0"
 addopts = "-ra -q"
 testpaths = ["tests"]
+markers = [
+    "asyncio: marca para tests async con pytest-asyncio"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "pytest-sugar",      
+    "pytest-cov"         
+]
