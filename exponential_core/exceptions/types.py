@@ -76,3 +76,11 @@ class MissingSecretKey(CustomAppException):
 class AWSConnectionError(CustomAppException):
     def __init__(self, detail: str = "Error al conectar con AWS Secrets Manager"):
         super().__init__(message=detail, status_code=500)
+
+
+class SecretsServiceNotLoaded(CustomAppException):
+    def __init__(self):
+        super().__init__(
+            message="SecretsService.load() no fue invocado antes de acceder a los secretos.",
+            status_code=422,
+        )
