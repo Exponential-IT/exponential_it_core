@@ -13,7 +13,8 @@ from exponential_core.exceptions.types import (
     SecretAlreadyExistsError,
     SecretsNotFound,
     MissingSecretKey,
-    AWSConnectionError
+    AWSConnectionError,
+    SecretsServiceNotLoaded,
 )
 
 from . import types
@@ -31,13 +32,18 @@ __all__ = [
     "SecretAlreadyExistsError",
     "SecretsNotFound",
     "MissingSecretKey",
-    "AWSConnectionError"
+    "AWSConnectionError",
+    "SecretsServiceNotLoaded",
 ]
 
 # 👇 Dinámico para futuros tipos sin romper compatibilidad
 for name in dir(types):
     obj = getattr(types, name)
-    if not name.startswith("_") and isinstance(obj, type) and issubclass(obj, CustomAppException):
+    if (
+        not name.startswith("_")
+        and isinstance(obj, type)
+        and issubclass(obj, CustomAppException)
+    ):
         globals()[name] = obj
         if name not in __all__:
             __all__.append(name)
