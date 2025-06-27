@@ -1,9 +1,11 @@
-from pydantic import BaseModel, Field
+from pydantic import Field
 from typing import List, Optional
 from datetime import datetime
 
+from exponential_core.odoo.schemas.base import BaseSchema
 
-class InvoiceLineSchema(BaseModel):
+
+class InvoiceLineSchema(BaseSchema):
     product_id: int = Field(..., description="ID del producto en Odoo")
     quantity: float = Field(1.0, description="Cantidad del producto")
     price_unit: float = Field(..., description="Precio unitario del producto")
@@ -11,19 +13,19 @@ class InvoiceLineSchema(BaseModel):
         default=[], description="Lista de IDs de impuestos aplicables"
     )
 
-    def as_odoo_payload(self) -> dict:
+    def transform_payload(self, data: dict) -> dict:
         payload = {
             "product_id": self.product_id,
             "quantity": self.quantity,
             "price_unit": self.price_unit,
-            "name": "/",  # Puedes personalizar este campo si lo deseas
+            "name": "/",
         }
         if self.tax_ids:
             payload["tax_ids"] = [(6, 0, self.tax_ids)]
         return payload
 
 
-class InvoiceCreateSchema(BaseModel):
+class InvoiceCreateSchema(BaseSchema):
     partner_id: int = Field(..., description="ID del proveedor en Odoo")
     ref: Optional[str] = Field(None, description="Número o referencia de la factura")
     payment_reference: Optional[str] = Field(
@@ -36,7 +38,7 @@ class InvoiceCreateSchema(BaseModel):
     )
     lines: List[InvoiceLineSchema] = Field(..., description="Líneas de la factura")
 
-    def as_odoo_payload(self) -> dict:
+    def transform_payload(self, data: dict) -> dict:
         return {
             "partner_id": self.partner_id,
             "move_type": "in_invoice",
@@ -46,6 +48,6 @@ class InvoiceCreateSchema(BaseModel):
                 self.invoice_date.isoformat() if self.invoice_date else None
             ),
             "date": self.date.isoformat() if self.date else None,
-            "to_check": True,
+            "to_check": self.to_check,
             "invoice_line_ids": [(0, 0, line.as_odoo_payload()) for line in self.lines],
         }

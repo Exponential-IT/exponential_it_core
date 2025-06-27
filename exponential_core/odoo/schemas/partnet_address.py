@@ -3,8 +3,10 @@ from typing import Optional
 
 from exponential_core.odoo.enums import AddressTypeEnum
 
+from exponential_core.odoo.schemas.base import BaseSchema
 
-class AddressCreateSchema(BaseModel):
+
+class AddressCreateSchema(BaseSchema):
     partner_id: int = Field(
         ..., description="ID del partner principal (cliente o proveedor)"
     )
@@ -29,12 +31,8 @@ class AddressCreateSchema(BaseModel):
     country_id: Optional[int] = Field(None, description="ID del país")
     phone: Optional[str] = Field(None, description="Teléfono fijo (si aplica)")
 
-    def as_odoo_payload(self) -> dict:
-        payload = self.model_dump(exclude_none=True)
-
-        # Renombrar campos
-        payload["name"] = payload.pop("address_name")
-        payload["parent_id"] = payload.pop("partner_id")
-        payload["type"] = payload.pop("address_type").value
-
-        return payload
+    def transform_payload(self, data: dict) -> dict:
+        data["name"] = data.pop("address_name")
+        data["parent_id"] = data.pop("partner_id")
+        data["type"] = self.address_type.value  # Accedemos a self aquí
+        return data

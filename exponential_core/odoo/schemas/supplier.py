@@ -1,10 +1,10 @@
-from pydantic import BaseModel, Field, EmailStr, HttpUrl
 from typing import Optional, Union
-
+from pydantic import Field, EmailStr, HttpUrl
 from exponential_core.odoo.enums import CompanyTypeEnum
+from exponential_core.odoo.schemas.base import BaseSchema
 
 
-class SupplierCreateSchema(BaseModel):
+class SupplierCreateSchema(BaseSchema):
     name: str = Field(..., description="Nombre del proveedor")
     vat: str = Field(..., description="Identificación fiscal (NIT, CIF, etc.)")
     email: Optional[EmailStr] = Field(None, description="Correo del proveedor")
@@ -26,8 +26,7 @@ class SupplierCreateSchema(BaseModel):
         None, description="Sitio web del proveedor"
     )
 
-    def as_odoo_payload(self) -> dict:
-        data = self.model_dump(exclude_none=True)
+    def transform_payload(self, data: dict) -> dict:
         data["supplier_rank"] = 1
         data["company_type"] = self.company_type.value
         if "website" in data:
