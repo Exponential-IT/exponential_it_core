@@ -1,9 +1,9 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 
 from exponential_core.odoo.enums import AddressTypeEnum
-
 from exponential_core.odoo.schemas.base import BaseSchema
+from exponential_core.odoo.schemas.normalizers import normalize_empty_string
 
 
 class AddressCreateSchema(BaseSchema):
@@ -30,6 +30,12 @@ class AddressCreateSchema(BaseSchema):
     state_id: Optional[int] = Field(None, description="ID del estado o provincia")
     country_id: Optional[int] = Field(None, description="ID del país")
     phone: Optional[str] = Field(None, description="Teléfono fijo (si aplica)")
+
+    # 💡 Normaliza campos vacíos a None
+    @field_validator("zip", "phone", mode="before")
+    @classmethod
+    def normalize_empty_fields(cls, v):
+        return normalize_empty_string(v)
 
     def transform_payload(self, data: dict) -> dict:
         data["name"] = data.pop("address_name")

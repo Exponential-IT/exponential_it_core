@@ -1,8 +1,9 @@
-from pydantic import Field
+from pydantic import Field, field_validator
 from typing import List, Optional
 from datetime import datetime
 
 from exponential_core.odoo.schemas.base import BaseSchema
+from exponential_core.odoo.schemas.normalizers import normalize_empty_string
 
 
 class InvoiceLineSchema(BaseSchema):
@@ -18,7 +19,7 @@ class InvoiceLineSchema(BaseSchema):
             "product_id": self.product_id,
             "quantity": self.quantity,
             "price_unit": self.price_unit,
-            "name": "/",
+            "name": "/",  # Odoo requiere este campo
         }
         if self.tax_ids:
             payload["tax_ids"] = [(6, 0, self.tax_ids)]
@@ -37,6 +38,12 @@ class InvoiceCreateSchema(BaseSchema):
         True, description="Debe marcarse si la factura necesita revisión"
     )
     lines: List[InvoiceLineSchema] = Field(..., description="Líneas de la factura")
+
+    # 💡 Normalización de strings vacíos a None
+    @field_validator("ref", "payment_reference", mode="before")
+    @classmethod
+    def normalize_empty_fields(cls, v):
+        return normalize_empty_string(v)
 
     def transform_payload(self, data: dict) -> dict:
         return {

@@ -1,8 +1,9 @@
-from pydantic import Field
 from typing import Optional
+from pydantic import Field, field_validator
 
 from exponential_core.odoo.enums import ProductTypeEnum
 from exponential_core.odoo.schemas.base import BaseSchema
+from exponential_core.odoo.schemas.normalizers import normalize_empty_string
 
 
 class ProductCreateSchema(BaseSchema):
@@ -17,6 +18,12 @@ class ProductCreateSchema(BaseSchema):
     uom_id: Optional[int] = Field(None, description="Unidad de medida")
     uom_po_id: Optional[int] = Field(None, description="Unidad de compra")
     taxes_id: Optional[list[int]] = Field(None, description="IDs de impuestos")
+
+    # 💡 Normalización de campos str opcionales
+    @field_validator("default_code", "barcode", mode="before")
+    @classmethod
+    def normalize_empty_fields(cls, v):
+        return normalize_empty_string(v)
 
     def transform_payload(self, data: dict) -> dict:
         if "tax_ids" in data:

@@ -2,7 +2,6 @@
 
 from pydantic import BaseModel
 from abc import ABC, abstractmethod
-from exponential_core.odoo.schemas.mixins import StrNormalizerMixin
 
 
 class OdooPayloadMixin(ABC):
@@ -16,7 +15,7 @@ class OdooPayloadMixin(ABC):
         return data
 
 
-class BaseSchema(BaseModel, StrNormalizerMixin, OdooPayloadMixin):
+class BaseSchema(BaseModel, OdooPayloadMixin):
     """Base para todos los schemas con normalización de strings y soporte Odoo."""
 
     pass

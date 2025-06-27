@@ -1,7 +1,9 @@
 from typing import Optional, Union
-from pydantic import Field, EmailStr, HttpUrl
+from pydantic import Field, EmailStr, HttpUrl, field_validator
+
 from exponential_core.odoo.enums import CompanyTypeEnum
 from exponential_core.odoo.schemas.base import BaseSchema
+from exponential_core.odoo.schemas.normalizers import normalize_empty_string
 
 
 class SupplierCreateSchema(BaseSchema):
@@ -25,6 +27,14 @@ class SupplierCreateSchema(BaseSchema):
     website: Optional[Union[str, HttpUrl]] = Field(
         None, description="Sitio web del proveedor"
     )
+
+    # 💡 Normaliza campos vacíos a None
+    @field_validator(
+        "email", "phone", "street", "zip", "city", "website", mode="before"
+    )
+    @classmethod
+    def normalize_empty_fields(cls, v):
+        return normalize_empty_string(v)
 
     def transform_payload(self, data: dict) -> dict:
         data["supplier_rank"] = 1
