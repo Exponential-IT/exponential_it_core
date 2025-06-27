@@ -41,4 +41,5 @@ class AddressCreateSchema(BaseSchema):
         data["name"] = data.pop("address_name")
         data["parent_id"] = data.pop("partner_id")
         data["type"] = self.address_type.value  # Accedemos a self aquí
+        data.pop("address_type", None)
         return data
