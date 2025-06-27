@@ -12,6 +12,7 @@ dependencies = [
     "fastapi",
     "httpx",
     "pydantic",
+    "pydantic[email]",
     "colorlog",
     "aioboto3"
 ]
