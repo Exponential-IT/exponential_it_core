@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import Field, field_validator
 from typing import Optional
 
 from exponential_core.odoo.enums import AddressTypeEnum

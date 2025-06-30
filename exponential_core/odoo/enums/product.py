@@ -2,5 +2,5 @@ from enum import Enum
 
 
 class ProductTypeEnum(str, Enum):
-    consu = "consu"  # Producto consumible (no se gestiona inventario)
-    service = "service"  # Producto tipo servicio (no material)
+    CONSU = "consu"  # Producto consumible (no se gestiona inventario)
+    SERVICE = "service"  # Producto tipo servicio (no material)
