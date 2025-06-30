@@ -4,6 +4,7 @@ from .invoice import InvoiceCreateSchema, InvoiceLineSchema
 from .product import ProductCreateSchema
 from .supplier import SupplierCreateSchema
 from .partnet_address import AddressCreateSchema
+from .taxes import ResponseTaxesSchema
 
 __all__ = [
     "InvoiceCreateSchema",
@@ -11,4 +12,5 @@ __all__ = [
     "ProductCreateSchema",
     "SupplierCreateSchema",
     "AddressCreateSchema",
+    "ResponseTaxesSchema",
 ]
