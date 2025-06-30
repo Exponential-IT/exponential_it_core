@@ -12,7 +12,7 @@ class SupplierCreateSchema(BaseSchema):
     email: Optional[EmailStr] = Field(None, description="Correo del proveedor")
     phone: Optional[str] = Field(None, description="Teléfono del proveedor")
     company_type: CompanyTypeEnum = Field(
-        default=CompanyTypeEnum.company,
+        default=CompanyTypeEnum.COMPANY,
         description="Tipo de entidad: 'company' o 'person'",
     )
     is_company: bool = Field(

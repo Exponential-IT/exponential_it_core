@@ -16,7 +16,7 @@ class AddressCreateSchema(BaseSchema):
     street: str = Field(..., description="Calle y número")
     city: str = Field(..., description="Ciudad o municipio")
     address_type: AddressTypeEnum = Field(
-        default=AddressTypeEnum.invoice,
+        default=AddressTypeEnum.INVOICE,
         description=(
             "Tipo de dirección:\n"
             "- contact: Contacto (detalles de empleados)\n"

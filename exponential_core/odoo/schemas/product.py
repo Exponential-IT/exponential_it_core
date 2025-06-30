@@ -12,7 +12,7 @@ class ProductCreateSchema(BaseSchema):
     barcode: Optional[str] = Field(None, description="Código de barras")
     list_price: float = Field(..., description="Precio de venta")
     detailed_type: ProductTypeEnum = Field(
-        ProductTypeEnum.consu,
+        ProductTypeEnum.CONSU,
         description="Tipo de producto: 'consu' (consumible) o 'service' (servicio)",
     )
     uom_id: Optional[int] = Field(None, description="Unidad de medida")
