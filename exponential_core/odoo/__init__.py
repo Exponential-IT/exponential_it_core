@@ -8,6 +8,7 @@ from exponential_core.odoo.enums import (
 from exponential_core.odoo.schemas import (
     InvoiceCreateSchema,
     InvoiceLineSchema,
+    InvoiceCreateSchemaV18,
     ProductCreateSchema,
     ProductCreateSchemaV18,
     SupplierCreateSchema,
@@ -22,6 +23,7 @@ __all__ = [
     "TaxUseEnum",
     "InvoiceCreateSchema",
     "InvoiceLineSchema",
+    "InvoiceCreateSchemaV18",
     "ProductCreateSchema",
     "ProductCreateSchemaV18",
     "SupplierCreateSchema",

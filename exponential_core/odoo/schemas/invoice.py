@@ -58,3 +58,37 @@ class InvoiceCreateSchema(BaseSchema):
             "to_check": self.to_check,
             "invoice_line_ids": [(0, 0, line.as_odoo_payload()) for line in self.lines],
         }
+
+
+class InvoiceCreateSchemaV18(BaseSchema):
+    partner_id: int = Field(..., description="ID del proveedor en Odoo")
+    ref: Optional[str] = Field(None, description="Número o referencia de la factura")
+    payment_reference: Optional[str] = Field(
+        None, description="Referencia de pago, puede ser igual a ref"
+    )
+    invoice_date: Optional[datetime] = Field(None, description="Fecha de la factura")
+    date: Optional[datetime] = Field(None, description="Fecha contable")
+    checked: bool = Field(
+        False, description="Debe marcarse si la factura fue revisada."
+    )
+    lines: List[InvoiceLineSchema] = Field(..., description="Líneas de la factura")
+
+    # 💡 Normalización de strings vacíos a None
+    @field_validator("ref", "payment_reference", mode="before")
+    @classmethod
+    def normalize_empty_fields(cls, v):
+        return normalize_empty_string(v)
+
+    def transform_payload(self, data: dict) -> dict:
+        return {
+            "partner_id": self.partner_id,
+            "move_type": "in_invoice",
+            "ref": self.ref,
+            "payment_reference": self.payment_reference or self.ref,
+            "invoice_date": (
+                self.invoice_date.isoformat() if self.invoice_date else None
+            ),
+            "date": self.date.isoformat() if self.date else None,
+            "checked": self.checked,
+            "invoice_line_ids": [(0, 0, line.as_odoo_payload()) for line in self.lines],
+        }
