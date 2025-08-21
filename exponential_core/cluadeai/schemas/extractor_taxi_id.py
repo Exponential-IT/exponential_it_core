@@ -122,3 +122,9 @@ class InvoiceResponseSchema(BaseModel):
     items: List[ItemSchema]
     totals: TotalsSchema
     payment: PaymentMethodSchema
+
+
+class RetentionHTTPResponse(BaseModel):
+    has_retention: bool = False
+    total_retention: Decimal | None = None
+    retention_percent: Decimal | None = None

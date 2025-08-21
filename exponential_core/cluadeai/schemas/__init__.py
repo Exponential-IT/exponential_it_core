@@ -6,6 +6,7 @@ from .extractor_taxi_id import (
     TotalsSchema,
     PaymentMethodSchema,
     InvoiceResponseSchema,
+    RetentionHTTPResponse,
 )
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     "TotalsSchema",
     "PaymentMethodSchema",
     "InvoiceResponseSchema",
+    "RetentionHTTPResponse",
 ]

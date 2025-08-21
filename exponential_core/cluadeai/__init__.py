@@ -6,6 +6,7 @@ from exponential_core.cluadeai.schemas import (
     TotalsSchema,
     PaymentMethodSchema,
     InvoiceResponseSchema,
+    RetentionHTTPResponse,
 )
 
 
@@ -17,4 +18,5 @@ __all__ = [
     "TotalsSchema",
     "PaymentMethodSchema",
     "InvoiceResponseSchema",
+    "RetentionHTTPResponse",
 ]
