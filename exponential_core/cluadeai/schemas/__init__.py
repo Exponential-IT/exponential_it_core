@@ -8,6 +8,8 @@ from .extractor_taxi_id import (
     InvoiceResponseSchema,
     RetentionHTTPResponse,
 )
+from .invoice_number import InvoiceNumberResponse, Metadata
+
 
 __all__ = [
     "CompanySchema",
@@ -18,4 +20,6 @@ __all__ = [
     "PaymentMethodSchema",
     "InvoiceResponseSchema",
     "RetentionHTTPResponse",
+    "InvoiceNumberResponse",
+    "Metadata",
 ]
