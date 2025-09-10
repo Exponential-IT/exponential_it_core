@@ -2,27 +2,39 @@ from __future__ import annotations
 
 from decimal import Decimal
 from typing import List, Optional
-
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
 from exponential_core.claudeai.schemas.extractor_taxi_id import _to_decimal
 
 
 class LineItemSchema(BaseModel):
-    model_config = ConfigDict(extra="ignore")  # ignora campos inesperados
+    model_config = ConfigDict(extra="ignore")
 
     date: Optional[str] = Field(None, description="Fecha como aparece en el PDF")
     delivery_code: Optional[str] = None
+    product_code: Optional[str] = None
     description: str
     quantity: Decimal
     unit: Optional[str] = None
     unit_price: Decimal
     discount_percent: Optional[Decimal] = None
+    discount_amount: Optional[Decimal] = None
+    net_price: Decimal
     line_total: Decimal
+    measurements: Optional[str] = None
+    color: Optional[str] = None
+    weight_kg: Optional[Decimal] = None
     notes: Optional[str] = None
 
-    # Normalizar numéricos a Decimal
     @field_validator(
-        "quantity", "unit_price", "discount_percent", "line_total", mode="before"
+        "quantity",
+        "unit_price",
+        "discount_percent",
+        "discount_amount",
+        "net_price",
+        "line_total",
+        "weight_kg",
+        mode="before",
     )
     @classmethod
     def _decimals(cls, v):
@@ -32,13 +44,27 @@ class LineItemSchema(BaseModel):
 class TotalsSchema(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
+    subtotal: Optional[Decimal] = None
     taxable_base: Decimal
     vat_percent: Decimal
     vat_amount: Decimal
+    discounts: Optional[Decimal] = None
+    withholding: Optional[Decimal] = None
+    withholding_percent: Optional[Decimal] = None
+    other_taxes: Optional[Decimal] = None
     grand_total: Decimal
 
     @field_validator(
-        "taxable_base", "vat_percent", "vat_amount", "grand_total", mode="before"
+        "subtotal",
+        "taxable_base",
+        "vat_percent",
+        "vat_amount",
+        "discounts",
+        "withholding",
+        "withholding_percent",
+        "other_taxes",
+        "grand_total",
+        mode="before",
     )
     @classmethod
     def _decimals(cls, v):
@@ -47,7 +73,7 @@ class TotalsSchema(BaseModel):
 
 class InvoiceExtractionSchema(BaseModel):
     """
-    Contenedor raíz del resultado de extracción de línea + totales.
+    Contenedor raíz del resultado de extracción de ítems + totales.
     """
 
     model_config = ConfigDict(extra="ignore")

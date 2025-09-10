@@ -1,4 +1,8 @@
-from .invoice_number import MetadataSchema, InvoiceNumberResponseSchema
+from .invoice_number import (
+    MetadataSchema,
+    InvoiceNumberResponseSchema,
+    ConfidenceFactorsSchema,
+)
 from .invoice_line_items import LineItemSchema, TotalsSchema, InvoiceExtractionSchema
 from .invoice_data import (
     AddressSchema,
@@ -22,4 +26,5 @@ __all__ = [
     "InvoiceExtractionSchema",
     "MetadataSchema",
     "InvoiceNumberResponseSchema",
+    "ConfidenceFactorsSchema",
 ]

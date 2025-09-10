@@ -11,6 +11,7 @@ from exponential_core.claudeai.schemas import (
     InvoiceExtractionSchema,
     MetadataSchema,
     InvoiceNumberResponseSchema,
+    ConfidenceFactorsSchema,
 )
 
 
@@ -28,4 +29,5 @@ __all__ = [
     "InvoiceNumberResponseSchema",
     "ContextLabel",
     "TaxIdType",
+    "ConfidenceFactorsSchema",
 ]
