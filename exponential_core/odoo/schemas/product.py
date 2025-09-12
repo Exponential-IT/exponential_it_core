@@ -10,7 +10,7 @@ class ProductCreateSchema(BaseSchema):
     name: str = Field(..., description="Nombre del producto")
     default_code: Optional[str] = Field(None, description="Referencia interna o SKU")
     barcode: Optional[str] = Field(None, description="Código de barras")
-    list_price: float = Field(..., description="Precio de venta")
+    standard_price: float = Field(..., description="Precio de venta")
     detailed_type: ProductTypeEnum = Field(
         ProductTypeEnum.CONSU,
         description="Tipo de producto: 'consu' (consumible) o 'service' (servicio)",

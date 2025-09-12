@@ -17,6 +17,7 @@ from exponential_core.claudeai.schemas import (
     ErrorPayloadSchema,
     TaxIdOkSchema,
     TaxIdErrorSchema,
+    TaxIdExtractionResponse,
 )
 
 
@@ -40,4 +41,5 @@ __all__ = [
     "ErrorPayloadSchema",
     "TaxIdOkSchema",
     "TaxIdErrorSchema",
+    "TaxIdExtractionResponse",
 ]

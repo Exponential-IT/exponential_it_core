@@ -18,6 +18,7 @@ from .find_tax_id import (
     ErrorPayloadSchema,
     TaxIdOkSchema,
     TaxIdErrorSchema,
+    TaxIdExtractionResponse,
 )
 
 
@@ -39,4 +40,5 @@ __all__ = [
     "ErrorPayloadSchema",
     "TaxIdOkSchema",
     "TaxIdErrorSchema",
+    "TaxIdExtractionResponse",
 ]
