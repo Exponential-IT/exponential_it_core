@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import List, Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from exponential_core.claudeai.schemas.extractor_taxi_id import _to_decimal
+from exponential_core.claudeai.schemas.extractor_tax_id import _to_decimal
 
 
 class LineItemSchema(BaseModel):

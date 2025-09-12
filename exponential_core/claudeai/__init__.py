@@ -12,6 +12,11 @@ from exponential_core.claudeai.schemas import (
     MetadataSchema,
     InvoiceNumberResponseSchema,
     ConfidenceFactorsSchema,
+    TaxCandidateSchema,
+    ResultPayloadSchema,
+    ErrorPayloadSchema,
+    TaxIdOkSchema,
+    TaxIdErrorSchema,
 )
 
 
@@ -30,4 +35,9 @@ __all__ = [
     "ContextLabel",
     "TaxIdType",
     "ConfidenceFactorsSchema",
+    "TaxCandidateSchema",
+    "ResultPayloadSchema",
+    "ErrorPayloadSchema",
+    "TaxIdOkSchema",
+    "TaxIdErrorSchema",
 ]

@@ -12,6 +12,13 @@ from .invoice_data import (
     DetectedTaxIdSchema,
     PartyExtractionSchema,
 )
+from .find_tax_id import (
+    TaxCandidateSchema,
+    ResultPayloadSchema,
+    ErrorPayloadSchema,
+    TaxIdOkSchema,
+    TaxIdErrorSchema,
+)
 
 
 __all__ = [
@@ -27,4 +34,9 @@ __all__ = [
     "MetadataSchema",
     "InvoiceNumberResponseSchema",
     "ConfidenceFactorsSchema",
+    "TaxCandidateSchema",
+    "ResultPayloadSchema",
+    "ErrorPayloadSchema",
+    "TaxIdOkSchema",
+    "TaxIdErrorSchema",
 ]
