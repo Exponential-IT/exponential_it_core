@@ -1,7 +1,8 @@
-from typing import Optional
+from typing import Optional, Union, Literal
+from enum import Enum
 from pydantic import Field, EmailStr, HttpUrl, field_validator, ConfigDict
 
-from exponential_core.odoo.enums import CompanyTypeEnum
+from exponential_core.odoo.enums import CompanyTypeEnum  # Enum con .COMPANY/.PERSON
 from exponential_core.odoo.schemas.base import BaseSchema
 
 
@@ -31,7 +32,7 @@ def _normalize_empty(v: Optional[str]) -> Optional[str]:
 
 def _normalize_email(v: Optional[str]) -> Optional[str]:
     s = _normalize_empty(v)
-    # si es None o vacío, se queda None y EmailStr no valida
+    # si es None o vacío, se queda None y EmailStr no valida (queda como None)
     return s
 
 
@@ -46,16 +47,20 @@ def _normalize_website(v: Optional[str]) -> Optional[str]:
 
 
 class SupplierCreateSchema(BaseSchema):
-    model_config = ConfigDict(use_enum_values=True)
+    # use_enum_values=True: al serializar (model_dump) usa los .value de los Enum
+    model_config = ConfigDict(use_enum_values=True, extra="ignore")
 
     name: str = Field(..., description="Nombre del proveedor")
     vat: str = Field(..., description="Identificación fiscal (NIT, CIF, etc.)")
     email: Optional[EmailStr] = Field(None, description="Correo del proveedor")
     phone: Optional[str] = Field(None, description="Teléfono del proveedor")
-    company_type: CompanyTypeEnum = Field(
+
+    # Acepta tanto Enum como str; validaremos para dejarlo siempre en "company"/"person"
+    company_type: Union[CompanyTypeEnum, Literal["company", "person"]] = Field(
         default=CompanyTypeEnum.COMPANY,
         description="Tipo de entidad: 'company' o 'person'",
     )
+
     is_company: bool = Field(
         True,
         description="Indica si el partner es una empresa (True) o una persona natural (False)",
@@ -67,7 +72,9 @@ class SupplierCreateSchema(BaseSchema):
     country_id: Optional[int] = Field(None, description="ID del país en Odoo")
     website: Optional[HttpUrl] = Field(None, description="Sitio web del proveedor")
 
-    # Normaliza campos vacíos / placeholders → None
+    # ──────────────────────────────────────────────────────────────────────────────
+    # Normalizadores de texto
+    # ──────────────────────────────────────────────────────────────────────────────
     @field_validator("phone", "street", "zip", "city", mode="before")
     @classmethod
     def _normalize_empty_fields(cls, v):
@@ -83,11 +90,40 @@ class SupplierCreateSchema(BaseSchema):
     def _normalize_website_field(cls, v):
         return _normalize_website(v)
 
+    # ──────────────────────────────────────────────────────────────────────────────
+    # Normalizador robusto de company_type:
+    # - Acepta Enum o str (cualquier casing, incluso "individual" -> "person")
+    # - Si no es válido, lanza ValueError con mensaje explícito (FastAPI devuelve 422)
+    # ──────────────────────────────────────────────────────────────────────────────
+    @field_validator("company_type", mode="before")
+    @classmethod
+    def _normalize_company_type(cls, v):
+        if v is None:
+            return "company"
+        if isinstance(v, Enum):
+            return v.value
+        s = str(v).strip().lower()
+        if s in {"company", "person", "individual"}:
+            return "person" if s in {"person", "individual"} else "company"
+        raise ValueError(
+            f"company_type inválido: {v!r}. Valores permitidos: 'company' o 'person'."
+        )
+
+    # ──────────────────────────────────────────────────────────────────────────────
+    # Transformación final para Odoo
+    # - Evita AttributeError usando getattr(.value, fallback al propio valor)
+    # - Limpia strings en blanco → None
+    # ──────────────────────────────────────────────────────────────────────────────
     def transform_payload(self, data: dict) -> dict:
         data["supplier_rank"] = 1
-        data["company_type"] = self.company_type.value
+
+        # prioriza lo que venga en 'data' (por si as_odoo_payload ya la dejó como str)
+        raw_ct = data.get("company_type", "company")
+        data["company_type"] = getattr(raw_ct, "value", raw_ct) or "company"
+
         # Limpieza final de strings simples
         for k in ("name", "vat", "street", "zip", "city", "phone"):
             if k in data and isinstance(data[k], str):
                 data[k] = data[k].strip() or None
+
         return data
