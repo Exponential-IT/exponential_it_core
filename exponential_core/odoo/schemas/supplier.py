@@ -32,7 +32,6 @@ def _normalize_empty(v: Optional[str]) -> Optional[str]:
 
 def _normalize_email(v: Optional[str]) -> Optional[str]:
     s = _normalize_empty(v)
-    # si es None o vacío, se queda None y EmailStr no valida (queda como None)
     return s
 
 
@@ -40,7 +39,6 @@ def _normalize_website(v: Optional[str]) -> Optional[str]:
     s = _normalize_empty(v)
     if s is None:
         return None
-    # Si no tiene esquema, agrega https:// para que HttpUrl valide
     if not s.startswith(("http://", "https://")):
         s = "https://" + s
     return s
@@ -55,7 +53,7 @@ class SupplierCreateSchema(BaseSchema):
     email: Optional[EmailStr] = Field(None, description="Correo del proveedor")
     phone: Optional[str] = Field(None, description="Teléfono del proveedor")
 
-    # Acepta tanto Enum como str; validaremos para dejarlo siempre en "company"/"person"
+    # Acepta Enum o str; lo normalizamos a "company"/"person"
     company_type: Union[CompanyTypeEnum, Literal["company", "person"]] = Field(
         default=CompanyTypeEnum.COMPANY,
         description="Tipo de entidad: 'company' o 'person'",
@@ -91,9 +89,7 @@ class SupplierCreateSchema(BaseSchema):
         return _normalize_website(v)
 
     # ──────────────────────────────────────────────────────────────────────────────
-    # Normalizador robusto de company_type:
-    # - Acepta Enum o str (cualquier casing, incluso "individual" -> "person")
-    # - Si no es válido, lanza ValueError con mensaje explícito (FastAPI devuelve 422)
+    # Normalizador robusto de company_type
     # ──────────────────────────────────────────────────────────────────────────────
     @field_validator("company_type", mode="before")
     @classmethod
@@ -110,16 +106,26 @@ class SupplierCreateSchema(BaseSchema):
         )
 
     # ──────────────────────────────────────────────────────────────────────────────
+    # as_odoo_payload local: siempre JSON-safe (HttpUrl/Enum/Decimal/etc.)
+    # ──────────────────────────────────────────────────────────────────────────────
+    def as_odoo_payload(self) -> dict:
+        # mode="json" convierte HttpUrl→str, Enum→str, Decimal→float, etc.
+        data = self.model_dump(exclude_none=True, mode="json")
+        return self.transform_payload(data)
+
+    # ──────────────────────────────────────────────────────────────────────────────
     # Transformación final para Odoo
-    # - Evita AttributeError usando getattr(.value, fallback al propio valor)
-    # - Limpia strings en blanco → None
     # ──────────────────────────────────────────────────────────────────────────────
     def transform_payload(self, data: dict) -> dict:
         data["supplier_rank"] = 1
 
-        # prioriza lo que venga en 'data' (por si as_odoo_payload ya la dejó como str)
+        # company_type ya normalizado como str; por seguridad, idempotente
         raw_ct = data.get("company_type", "company")
         data["company_type"] = getattr(raw_ct, "value", raw_ct) or "company"
+
+        # website podría seguir siendo Url en caso extremo; fuerzalo a str si existe
+        if "website" in data and data["website"] is not None:
+            data["website"] = str(data["website"])
 
         # Limpieza final de strings simples
         for k in ("name", "vat", "street", "zip", "city", "phone"):
