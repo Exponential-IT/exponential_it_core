@@ -10,6 +10,7 @@ class InvoiceLineSchema(BaseSchema):
     product_id: int = Field(..., description="ID del producto en Odoo")
     quantity: float = Field(1.0, description="Cantidad del producto")
     price_unit: float = Field(..., description="Precio unitario del producto")
+    discount: Optional[float] = Field(None, description="Descuento por item")
     tax_ids: Optional[List[int]] = Field(
         default=[], description="Lista de IDs de impuestos aplicables"
     )
@@ -19,6 +20,7 @@ class InvoiceLineSchema(BaseSchema):
             "product_id": self.product_id,
             "quantity": self.quantity,
             "price_unit": self.price_unit,
+            "discount": self.discount,
             "name": "/",  # Odoo requiere este campo
         }
         if self.tax_ids:
