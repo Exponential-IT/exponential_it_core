@@ -6,6 +6,7 @@ class TaxIdType(str, Enum):
     NIE = "NIE"
     CIF = "CIF"
     VAT = "VAT"
+    CUIT = "CUIT"
     UNKNOWN = "UNKNOWN"
 
 
