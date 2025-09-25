@@ -1,4 +1,4 @@
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from typing import List, Optional
 from datetime import datetime
 
@@ -7,24 +7,72 @@ from exponential_core.odoo.schemas.normalizers import normalize_empty_string
 
 
 class InvoiceLineSchema(BaseSchema):
-    product_id: int = Field(..., description="ID del producto en Odoo")
-    quantity: float = Field(1.0, description="Cantidad del producto")
-    price_unit: float = Field(..., description="Precio unitario del producto")
-    discount: Optional[float] = Field(None, description="Descuento por item")
-    tax_ids: Optional[List[int]] = Field(
-        default=[], description="Lista de IDs de impuestos aplicables"
+    # Opción A: por producto
+    product_id: Optional[int] = Field(
+        None, description="ID del producto en Odoo (opcional si usas name)"
+    )
+    # Opción B: por descripción
+    name: Optional[str] = Field(
+        None, description="Descripción de la línea (opcional si usas product_id)"
     )
 
+    quantity: float = Field(1.0, description="Cantidad del producto")
+    price_unit: float = Field(..., description="Precio unitario del producto")
+    discount: Optional[float] = Field(
+        None, description="Descuento por ítem (porcentaje)"
+    )
+    tax_ids: List[int] = Field(
+        default_factory=list, description="Lista de IDs de impuestos aplicables"
+    )
+
+    # Normalizar strings vacíos a None
+    @field_validator("name", mode="before")
+    @classmethod
+    def _normalize_name(cls, v):
+        return normalize_empty_string(v)
+
+    # Validar que venga exactamente uno: product_id XOR name
+    @model_validator(mode="after")
+    def _ensure_one_of(self):
+        has_pid = self.product_id is not None
+        has_name = self.name is not None and self.name != ""
+        if has_pid == has_name:
+            # True==True (ambos) o False==False (ninguno) -> error
+            raise ValueError(
+                "Debes proporcionar exactamente uno: 'product_id' o 'name' (pero no ambos)."
+            )
+        return self
+
     def transform_payload(self, data: dict) -> dict:
+        """
+        Devuelve el dict listo para Odoo (para usar con (0, 0, payload)).
+        - Si product_id está presente, usamos '/' como name (Odoo lo permite y rellenará la descripción).
+        - Si usamos name (sin product_id), enviamos solo la descripción.
+        """
         payload = {
-            "product_id": self.product_id,
             "quantity": self.quantity,
             "price_unit": self.price_unit,
             "discount": self.discount,
-            "name": "/",  # Odoo requiere este campo
         }
+
+        if self.product_id is not None:
+            payload.update(
+                {
+                    "product_id": self.product_id,
+                    "name": "/",  # Odoo requiere 'name'; con product_id se suele usar "/"
+                }
+            )
+        else:
+            # Modo sin product_id: enviar la descripción obligatoria
+            payload.update(
+                {
+                    "name": self.name,
+                }
+            )
+
         if self.tax_ids:
             payload["tax_ids"] = [(6, 0, self.tax_ids)]
+
         return payload
 
 
