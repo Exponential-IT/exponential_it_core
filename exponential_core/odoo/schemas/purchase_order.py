@@ -1,21 +1,18 @@
+# exponential_core/odoo/schemas/purchase_order.py
 from typing import List, Tuple
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, RootModel
 
 
 class PurchaseOrderSchema(BaseModel):
-    id: int = Field(..., description="ID interno de la orden de compra en Odoo")
-    name: str = Field(..., description="Número o referencia de la orden de compra")
-    state: str = Field(..., description="Estado de la orden de compra (ej: 'purchase')")
-    partner_id: Tuple[int, str] = Field(
-        ..., description="Tupla con el ID y nombre del proveedor asociado"
-    )
-    invoice_ids: List[int] = Field(
-        default_factory=list, description="IDs de facturas relacionadas"
-    )
-    invoice_count: int = Field(..., description="Cantidad de facturas asociadas")
-    invoice_status: str = Field(..., description="Estado de facturación de la orden")
-    delivery_status: str = Field(..., description="Estado de entrega de la orden")
+    id: int = Field(..., description="ID interno de la orden en Odoo")
+    name: str = Field(..., description="Referencia de la orden (p. ej. 'PO 02-00032')")
+    state: str = Field(..., description="Estado de la orden")
+    partner_id: Tuple[int, str] = Field(..., description="(partner_id, partner_name)")
+    invoice_ids: List[int] = Field(default_factory=list)
+    invoice_count: int
+    invoice_status: str
+    delivery_status: str
 
 
-class PurchaseOrdersResponse(BaseModel):
-    __root__: List[PurchaseOrderSchema]
+class PurchaseOrdersResponse(RootModel[List[PurchaseOrderSchema]]):
+    pass
