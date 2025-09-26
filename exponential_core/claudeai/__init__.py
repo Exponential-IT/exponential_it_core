@@ -18,6 +18,10 @@ from exponential_core.claudeai.schemas import (
     TaxIdOkSchema,
     TaxIdErrorSchema,
     TaxIdExtractionResponse,
+    PurchaseOrder,
+    PrimaryPurchaseOrder,
+    PurchaseOrderEntry,
+    PurchaseOrderResponse,
 )
 
 
@@ -42,4 +46,8 @@ __all__ = [
     "TaxIdOkSchema",
     "TaxIdErrorSchema",
     "TaxIdExtractionResponse",
+    "PurchaseOrder",
+    "PrimaryPurchaseOrder",
+    "PurchaseOrderEntry",
+    "PurchaseOrderResponse",
 ]

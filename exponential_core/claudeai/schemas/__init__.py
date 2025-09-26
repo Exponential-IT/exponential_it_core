@@ -21,6 +21,13 @@ from .find_tax_id import (
     TaxIdExtractionResponse,
 )
 
+from .purchase_order import (
+    PurchaseOrder,
+    PrimaryPurchaseOrder,
+    PurchaseOrderEntry,
+    PurchaseOrderResponse,
+)
+
 
 __all__ = [
     "AddressSchema",
@@ -41,4 +48,8 @@ __all__ = [
     "TaxIdOkSchema",
     "TaxIdErrorSchema",
     "TaxIdExtractionResponse",
+    "PurchaseOrder",
+    "PrimaryPurchaseOrder",
+    "PurchaseOrderEntry",
+    "PurchaseOrderResponse",
 ]
