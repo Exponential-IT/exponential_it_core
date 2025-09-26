@@ -14,6 +14,8 @@ from exponential_core.odoo.schemas import (
     SupplierCreateSchema,
     AddressCreateSchema,
     ResponseTaxesSchema,
+    PurchaseOrderSchema,
+    PurchaseOrdersResponse,
 )
 
 __all__ = [
@@ -29,4 +31,6 @@ __all__ = [
     "SupplierCreateSchema",
     "AddressCreateSchema",
     "ResponseTaxesSchema",
+    "PurchaseOrderSchema",
+    "PurchaseOrdersResponse",
 ]
