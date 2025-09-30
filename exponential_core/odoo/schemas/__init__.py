@@ -6,6 +6,7 @@ from .supplier import SupplierCreateSchema
 from .partnet_address import AddressCreateSchema
 from .taxes import ResponseTaxesSchema
 from .purchase_order import PurchaseOrderSchema, PurchaseOrdersResponse
+from .link_invoice import LinkExistingSchema
 
 __all__ = [
     "InvoiceCreateSchema",
@@ -18,4 +19,5 @@ __all__ = [
     "ResponseTaxesSchema",
     "PurchaseOrderSchema",
     "PurchaseOrdersResponse",
+    "LinkExistingSchema",
 ]
