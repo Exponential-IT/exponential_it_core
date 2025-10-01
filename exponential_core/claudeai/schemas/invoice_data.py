@@ -157,8 +157,7 @@ class DetectedTaxIdSchema(BaseModel):
 class TaxNotesSchema(BaseModel):
     """
     Bloque adicional del prompt:
-    - menciona 'Sujeto Pasivo' (o variantes)
-    - detecta si el IVA es 0% (o exento/no sujeto/reverse charge) y evidencia textual.
+    - Detecta si se menciona 'Sujeto Pasivo' (o variantes) y devuelve evidencia textual.
     """
 
     model_config = ConfigDict(extra="ignore", use_enum_values=True)
@@ -167,25 +166,12 @@ class TaxNotesSchema(BaseModel):
     sujeto_pasivo_variants_found: List[str] = Field(default_factory=list)
     sujeto_pasivo_evidence: List[str] = Field(default_factory=list)
 
-    vat_zero_detected: bool = False
-    vat_zero_reason: str = "N/A"
-    vat_zero_evidence: List[str] = Field(default_factory=list)
-
     @field_validator(
-        "sujeto_pasivo_variants_found",
-        "sujeto_pasivo_evidence",
-        "vat_zero_evidence",
-        mode="before",
+        "sujeto_pasivo_variants_found", "sujeto_pasivo_evidence", mode="before"
     )
     @classmethod
     def _norm_lists(cls, v: Optional[Iterable[str]]) -> List[str]:
         return _dedup_keep_order(v)
-
-    @field_validator("vat_zero_reason", mode="before")
-    @classmethod
-    def _norm_reason(cls, v: Optional[str]) -> str:
-        # Mantén "N/A" si no hay razón; en caso contrario normaliza espacios
-        return _norm_na(v)
 
 
 # ---------- Raíz ----------
