@@ -133,7 +133,6 @@ class DetectedTaxIdSchema(BaseModel):
     def _norm_snippet(cls, v: Optional[str]) -> str:
         return _norm_na(v)
 
-    # Enums: separa validadores por campo, sin __fields__/model_fields
     @field_validator("tax_id_type", mode="before")
     @classmethod
     def _enum_tax_id_type(cls, v):
@@ -155,6 +154,40 @@ class DetectedTaxIdSchema(BaseModel):
             return v  # dejar que Pydantic valide/falle
 
 
+class TaxNotesSchema(BaseModel):
+    """
+    Bloque adicional del prompt:
+    - menciona 'Sujeto Pasivo' (o variantes)
+    - detecta si el IVA es 0% (o exento/no sujeto/reverse charge) y evidencia textual.
+    """
+
+    model_config = ConfigDict(extra="ignore", use_enum_values=True)
+
+    mentions_sujeto_pasivo: bool = False
+    sujeto_pasivo_variants_found: List[str] = Field(default_factory=list)
+    sujeto_pasivo_evidence: List[str] = Field(default_factory=list)
+
+    vat_zero_detected: bool = False
+    vat_zero_reason: str = "N/A"
+    vat_zero_evidence: List[str] = Field(default_factory=list)
+
+    @field_validator(
+        "sujeto_pasivo_variants_found",
+        "sujeto_pasivo_evidence",
+        "vat_zero_evidence",
+        mode="before",
+    )
+    @classmethod
+    def _norm_lists(cls, v: Optional[Iterable[str]]) -> List[str]:
+        return _dedup_keep_order(v)
+
+    @field_validator("vat_zero_reason", mode="before")
+    @classmethod
+    def _norm_reason(cls, v: Optional[str]) -> str:
+        # Mantén "N/A" si no hay razón; en caso contrario normaliza espacios
+        return _norm_na(v)
+
+
 # ---------- Raíz ----------
 class PartyExtractionSchema(BaseModel):
     """Raíz del resultado de identificación de CLIENT y SUPPLIER + metadatos de factura."""
@@ -164,4 +197,5 @@ class PartyExtractionSchema(BaseModel):
     invoice: InvoiceInfoSchema
     client: PartySchema
     supplier: PartySchema
+    tax_notes: TaxNotesSchema = Field(default_factory=TaxNotesSchema)
     detected_tax_ids: List[DetectedTaxIdSchema] = Field(default_factory=list)
