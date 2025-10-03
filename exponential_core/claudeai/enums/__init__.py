@@ -1,3 +1,3 @@
-from .tax_ids import TaxIdType, ContextLabel
+from .tax_ids import TaxIdType, ContextLabel, CurrencyEnum
 
-__all__ = ["TaxIdType", "ContextLabel"]
+__all__ = ["TaxIdType", "ContextLabel", "CurrencyEnum"]

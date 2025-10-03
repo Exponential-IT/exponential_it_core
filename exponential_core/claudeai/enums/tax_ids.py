@@ -16,3 +16,9 @@ class ContextLabel(str, Enum):
     HEADER = "Header"
     FOOTER = "Footer"
     UNKNOWN = "Unknown"
+
+
+class CurrencyEnum(str, Enum):
+    EUR = "EUR"
+    USD = "USD"
+    ARS = "ARS"

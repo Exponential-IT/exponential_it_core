@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+
 from decimal import Decimal
 from typing import List, Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from exponential_core.claudeai.enums.tax_ids import CurrencyEnum
 from exponential_core.claudeai.schemas.extractor_tax_id import _to_decimal
 
 
@@ -115,12 +117,34 @@ class TotalsSchema(BaseModel):
         return _to_decimal(v)
 
 
-class InvoiceExtractionSchema(BaseModel):
+class SecondaryTotalSchema(BaseModel):
     """
-    Contenedor raíz del resultado de extracción de ítems + totales.
+    Total secundario cuando el PDF imprime un segundo total en otra moneda
+    (p. ej., TOTAL U$S y TOTAL PESOS con tipo de cambio).
     """
 
     model_config = ConfigDict(extra="ignore")
+
+    currency: CurrencyEnum
+    amount: Decimal
+    fx_rate: Optional[Decimal] = None  # tipo de cambio si está impreso
+
+    @field_validator("amount", "fx_rate", mode="before")
+    @classmethod
+    def _decimals(cls, v):
+        return _to_decimal(v)
+
+
+class InvoiceExtractionSchema(BaseModel):
+    """
+    Contenedor raíz del resultado de extracción de ítems + totales.
+    Incluye moneda primaria (default EUR) y total secundario opcional.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    currency: CurrencyEnum = CurrencyEnum.EUR
+    secondary_total: Optional[SecondaryTotalSchema] = None
 
     items: List[LineItemSchema]
     totals: TotalsSchema

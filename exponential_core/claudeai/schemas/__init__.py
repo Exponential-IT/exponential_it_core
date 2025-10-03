@@ -9,6 +9,7 @@ from .invoice_line_items import (
     DiscountEntrySchema,
     WithholdingEntrySchema,
     TotalsSchema,
+    SecondaryTotalSchema,
     InvoiceExtractionSchema,
 )
 from .invoice_data import (
@@ -49,6 +50,7 @@ __all__ = [
     "DiscountEntrySchema",
     "WithholdingEntrySchema",
     "TotalsSchema",
+    "SecondaryTotalSchema",
     "InvoiceExtractionSchema",
     "MetadataSchema",
     "InvoiceNumberResponseSchema",
