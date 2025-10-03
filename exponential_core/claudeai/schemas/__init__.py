@@ -28,6 +28,7 @@ from .purchase_order import (
     PurchaseOrderResponse,
 )
 
+from .percepciones import ArTaxes, PercepcionAR, PercepcionesResponse
 
 __all__ = [
     "AddressSchema",
@@ -52,4 +53,7 @@ __all__ = [
     "PrimaryPurchaseOrder",
     "PurchaseOrderEntry",
     "PurchaseOrderResponse",
+    "ArTaxes",
+    "PercepcionAR",
+    "PercepcionesResponse",
 ]

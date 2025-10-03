@@ -22,6 +22,9 @@ from exponential_core.claudeai.schemas import (
     PrimaryPurchaseOrder,
     PurchaseOrderEntry,
     PurchaseOrderResponse,
+    ArTaxes,
+    PercepcionAR,
+    PercepcionesResponse,
 )
 
 
@@ -50,4 +53,7 @@ __all__ = [
     "PrimaryPurchaseOrder",
     "PurchaseOrderEntry",
     "PurchaseOrderResponse",
+    "ArTaxes",
+    "PercepcionAR",
+    "PercepcionesResponse",
 ]
