@@ -1,7 +1,7 @@
 from .invoice_number import (
+    ConfidenceFactorsSchema,
     MetadataSchema,
     InvoiceNumberResponseSchema,
-    ConfidenceFactorsSchema,
 )
 from .invoice_line_items import (
     LineItemSchema,
@@ -18,30 +18,32 @@ from .invoice_data import (
     PartySchema,
     InvoiceInfoSchema,
     DetectedTaxIdSchema,
+    TaxNotesSchema,
     PartyExtractionSchema,
 )
 from .find_tax_id import (
     TaxCandidateSchema,
     ResultPayloadSchema,
     ErrorPayloadSchema,
-    TaxIdOkSchema,
-    TaxIdErrorSchema,
-    TaxIdExtractionResponse,
+    ResultEntryOk,
+    ResultEntryError,
+    MetaSchema,
+    TaxIdBatchResponse,
 )
 
 from .purchase_order import (
-    PurchaseOrder,
-    PrimaryPurchaseOrder,
     PurchaseOrderEntry,
+    PrimaryPurchaseOrder,
+    PurchaseOrder,
     PurchaseOrderResponse,
 )
 
 from .percepciones import ArTaxes, PercepcionAR, PercepcionesResponse
 
 __all__ = [
+    "ConfidenceFactorsSchema",
     "MetadataSchema",
     "InvoiceNumberResponseSchema",
-    "ConfidenceFactorsSchema",
     "LineItemSchema",
     "VATEntrySchema",
     "DiscountEntrySchema",
@@ -54,16 +56,18 @@ __all__ = [
     "PartySchema",
     "InvoiceInfoSchema",
     "DetectedTaxIdSchema",
+    "TaxNotesSchema",
     "PartyExtractionSchema",
     "TaxCandidateSchema",
     "ResultPayloadSchema",
     "ErrorPayloadSchema",
-    "TaxIdOkSchema",
-    "TaxIdErrorSchema",
-    "TaxIdExtractionResponse",
-    "PurchaseOrder",
-    "PrimaryPurchaseOrder",
+    "ResultEntryOk",
+    "ResultEntryError",
+    "MetaSchema",
+    "TaxIdBatchResponse",
     "PurchaseOrderEntry",
+    "PrimaryPurchaseOrder",
+    "PurchaseOrder",
     "PurchaseOrderResponse",
     "ArTaxes",
     "PercepcionAR",
