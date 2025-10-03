@@ -1,3 +1,19 @@
-from .tax_ids import TaxIdType, ContextLabel, CurrencyEnum
+from .tax_ids import (
+    TypeTaxUse,
+    EntryStatus,
+    GlobalStatus,
+    ErrorCode,
+    TaxIdType,
+    ContextLabel,
+    CurrencyEnum,
+)
 
-__all__ = ["TaxIdType", "ContextLabel", "CurrencyEnum"]
+__all__ = [
+    "TypeTaxUse",
+    "EntryStatus",
+    "GlobalStatus",
+    "ErrorCode",
+    "TaxIdType",
+    "ContextLabel",
+    "CurrencyEnum",
+]

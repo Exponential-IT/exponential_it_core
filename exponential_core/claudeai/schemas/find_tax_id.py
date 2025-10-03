@@ -2,21 +2,14 @@
 from __future__ import annotations
 
 from typing import Optional, Union, Annotated, Dict, Any, List
+from typing import Literal
+
 from pydantic import BaseModel, Field, ConfigDict, model_validator
 
-from exponential_core.claudeai.enums.tax_ids import (
-    EntryStatus,
-    ErrorCode,
-    GlobalStatus,
-    TypeTaxUse,
-)
+from exponential_core.claudeai.enums.tax_ids import ErrorCode, GlobalStatus, TypeTaxUse
 
 
 class TaxCandidateSchema(BaseModel):
-    """
-    Candidato de impuesto tal como viene de Odoo/tu catálogo validado.
-    """
-
     model_config = ConfigDict(extra="forbid")
 
     id: Optional[int] = None
@@ -26,29 +19,16 @@ class TaxCandidateSchema(BaseModel):
 
 
 class ResultPayloadSchema(BaseModel):
-    """
-    Payload cuando hay match (best_tax) para un primary_amount dado.
-    """
-
     model_config = ConfigDict(extra="forbid")
 
     best_tax: TaxCandidateSchema
-    confidence: Annotated[float, Field(ge=0.0, le=1.0)]
+    confidence: float = Field(ge=0.0, le=1.0)
     reason: str
-    alternatives: Annotated[
-        List[TaxCandidateSchema],
-        Field(default_factory=list, max_length=3),
-    ]
+    alternatives: List[TaxCandidateSchema] = Field(default_factory=list, max_length=3)
 
 
 class ErrorPayloadSchema(BaseModel):
-    """
-    Detalle de error para un primary_amount (p.ej. no hubo candidato).
-    """
-
-    # Usa "ignore" si quieres permitir metadata flexible en details;
-    # cambia a "forbid" si quieres contrato estricto.
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(extra="ignore")  # o "forbid" si quieres contrato estricto
 
     code: ErrorCode
     message: str
@@ -56,16 +36,13 @@ class ErrorPayloadSchema(BaseModel):
 
 
 # =========================
-# Resultados por entrada (discriminated union)
+# Resultados por entrada (DISCRIMINATED UNION por "status")
+#  ⚠️ En Pydantic v2 el discriminador debe ser Literal, NO Enum.
 # =========================
 class ResultEntryOk(BaseModel):
-    """
-    Entrada OK para un primary_amount específico (o None si no hubo primary_tax).
-    """
-
     model_config = ConfigDict(extra="forbid")
 
-    status: EntryStatus = Field(default=EntryStatus.OK)
+    status: Literal["ok"] = "ok"  # 👈 Literal requerido para el discriminador
     primary_amount: Optional[float] = Field(
         default=None,
         description="Ej.: 21.0; None cuando no hubo primary_tax (inferencia por semántica).",
@@ -75,13 +52,9 @@ class ResultEntryOk(BaseModel):
 
 
 class ResultEntryError(BaseModel):
-    """
-    Entrada ERROR para un primary_amount que no encontró candidato válido.
-    """
-
     model_config = ConfigDict(extra="forbid")
 
-    status: EntryStatus = Field(default=EntryStatus.ERROR)
+    status: Literal["error"] = "error"  # 👈 Literal requerido para el discriminador
     primary_amount: Optional[float] = Field(
         default=None,
         description="Ej.: 21.0; None cuando no hubo primary_tax (inferencia por semántica).",
@@ -90,7 +63,6 @@ class ResultEntryError(BaseModel):
     error: ErrorPayloadSchema
 
 
-# Unión discriminada por "status"
 ResultEntry = Annotated[
     Union[ResultEntryOk, ResultEntryError],
     Field(discriminator="status"),
@@ -115,12 +87,8 @@ class MetaSchema(BaseModel):
 # =========================
 class TaxIdBatchResponse(BaseModel):
     """
-    Respuesta batch para la selección de impuestos:
-      - 'results' contiene una entrada por cada valor en primary_tax (preservando orden y multiplicidad).
-      - 'status' global se ajusta automáticamente:
-          * 'ok'            → todas las entradas son ok
-          * 'error'         → todas las entradas son error
-          * 'partial_error' → mezcla de ok y error
+    'results' tiene una entrada por cada primary_amount (preservando orden y multiplicidad).
+    'status' global: ok | partial_error | error (se ajusta automáticamente).
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -131,24 +99,9 @@ class TaxIdBatchResponse(BaseModel):
 
     @model_validator(mode="after")
     def _coerce_global_status(self) -> "TaxIdBatchResponse":
-        """
-        Ajusta 'status' global según el contenido de 'results' para evitar inconsistencias.
-        Elimínalo si prefieres fijar el estado global desde la capa de orquestación.
-        """
         if not self.results:
             object.__setattr__(self, "status", GlobalStatus.ERROR)
             return self
 
-        oks = sum(1 for r in self.results if r.status == EntryStatus.OK)
-        errs = sum(1 for r in self.results if r.status == EntryStatus.ERROR)
-
-        if oks > 0 and errs == 0:
-            computed = GlobalStatus.OK
-        elif errs > 0 and oks == 0:
-            computed = GlobalStatus.ERROR
-        else:
-            computed = GlobalStatus.PARTIAL_ERROR
-
-        if self.status != computed:
-            object.__setattr__(self, "status", computed)
-        return self
+        oks = sum(1 for r in self.results if r.status == "ok")
+        errs = sum(1 for r in self.results if r.status == "error")

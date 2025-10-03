@@ -1,4 +1,13 @@
-from exponential_core.claudeai.enums import ContextLabel, TaxIdType, CurrencyEnum
+from exponential_core.claudeai.enums import (
+    TypeTaxUse,
+    EntryStatus,
+    GlobalStatus,
+    ErrorCode,
+    TaxIdType,
+    ContextLabel,
+    CurrencyEnum,
+)
+
 from exponential_core.claudeai.schemas import (
     AddressSchema,
     ContactSchema,
@@ -33,8 +42,12 @@ from exponential_core.claudeai.schemas import (
 
 __all__ = [
     # Enums
-    "ContextLabel",
+    "TypeTaxUse",
+    "EntryStatus",
+    "GlobalStatus",
+    "ErrorCode",
     "TaxIdType",
+    "ContextLabel",
     "CurrencyEnum",
     # Schemas
     "AddressSchema",
