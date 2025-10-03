@@ -41,6 +41,44 @@ class LineItemSchema(BaseModel):
         return _to_decimal(v)
 
 
+class VATEntrySchema(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    percent: Decimal
+    amount: Decimal
+
+    @field_validator("percent", "amount", mode="before")
+    @classmethod
+    def _decimals(cls, v):
+        return _to_decimal(v)
+
+
+class DiscountEntrySchema(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    label: str
+    percent: Optional[Decimal] = None
+    amount: Decimal
+
+    @field_validator("percent", "amount", mode="before")
+    @classmethod
+    def _decimals(cls, v):
+        return _to_decimal(v)
+
+
+class WithholdingEntrySchema(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    label: str
+    percent: Optional[Decimal] = None
+    amount: Decimal
+
+    @field_validator("percent", "amount", mode="before")
+    @classmethod
+    def _decimals(cls, v):
+        return _to_decimal(v)
+
+
 class TotalsSchema(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -48,9 +86,15 @@ class TotalsSchema(BaseModel):
     taxable_base: Decimal
     vat_percent: Decimal
     vat_amount: Decimal
+    vat_breakdown: List[VATEntrySchema] = Field(default_factory=list)
+
     discounts: Optional[Decimal] = None
+    discounts_breakdown: List[DiscountEntrySchema] = Field(default_factory=list)
+
     withholding: Optional[Decimal] = None
     withholding_percent: Optional[Decimal] = None
+    withholdings_breakdown: List[WithholdingEntrySchema] = Field(default_factory=list)
+
     other_taxes: Optional[Decimal] = None
     grand_total: Decimal
 

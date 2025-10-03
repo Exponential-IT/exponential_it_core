@@ -3,7 +3,14 @@ from .invoice_number import (
     InvoiceNumberResponseSchema,
     ConfidenceFactorsSchema,
 )
-from .invoice_line_items import LineItemSchema, TotalsSchema, InvoiceExtractionSchema
+from .invoice_line_items import (
+    LineItemSchema,
+    VATEntrySchema,
+    DiscountEntrySchema,
+    WithholdingEntrySchema,
+    TotalsSchema,
+    InvoiceExtractionSchema,
+)
 from .invoice_data import (
     AddressSchema,
     ContactSchema,
@@ -38,6 +45,9 @@ __all__ = [
     "DetectedTaxIdSchema",
     "PartyExtractionSchema",
     "LineItemSchema",
+    "VATEntrySchema",
+    "DiscountEntrySchema",
+    "WithholdingEntrySchema",
     "TotalsSchema",
     "InvoiceExtractionSchema",
     "MetadataSchema",
