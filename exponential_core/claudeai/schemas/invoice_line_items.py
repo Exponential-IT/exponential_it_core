@@ -215,8 +215,8 @@ class SecondaryTotalSchema(BaseModel):
 
     model_config = ConfigDict(extra="ignore")
 
-    currency: Optional[CurrencyEnum]
-    amount: Optional[Decimal]
+    currency: Optional[CurrencyEnum] = None
+    amount: Optional[Decimal] = None
     fx_rate: Optional[Decimal] = None  # tipo de cambio si está impreso
 
     @field_validator("amount", "fx_rate", mode="before")
