@@ -78,7 +78,6 @@ class LineItemSchema(BaseModel):
         try:
             expected = _q2(self.line_total * (self.vat_percent / Decimal("100")))
         except Exception:
-            # Si algo vino mal formateado, no bloqueamos validación.
             return self
 
         if self.vat_amount is None:
@@ -86,8 +85,10 @@ class LineItemSchema(BaseModel):
         else:
             diff = abs(self.vat_amount - expected)
             if diff > _TOL:
-                # Respetamos el monto provisto (posible “impreso”), pero lo dejamos documentado.
-                note = f"IVA línea difiere de esperado: provisto={self.vat_amount} esperado={expected} (Δ={_q2(diff)})."
+                note = (
+                    f"IVA línea difiere de esperado: provisto={self.vat_amount} "
+                    f"esperado={expected} (Δ={_q2(diff)})."
+                )
                 if self.notes:
                     object.__setattr__(self, "notes", f"{self.notes} | {note}")
                 else:
@@ -130,6 +131,22 @@ class WithholdingEntrySchema(BaseModel):
         return _to_decimal(v)
 
 
+class PerceptionEntrySchema(BaseModel):
+    """
+    Percepciones AR (IIBB, SIRCREB, ARBA, AGIP, etc.) — se SUMAN al total.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+    label: str
+    percent: Optional[Decimal] = None
+    amount: Decimal
+
+    @field_validator("percent", "amount", mode="before")
+    @classmethod
+    def _decimals(cls, v):
+        return _to_decimal(v)
+
+
 class TotalsSchema(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -146,6 +163,10 @@ class TotalsSchema(BaseModel):
     withholding_percent: Optional[Decimal] = None
     withholdings_breakdown: List[WithholdingEntrySchema] = Field(default_factory=list)
 
+    # 🔹 NUEVO: Percepciones (Argentina) → ADITIVAS
+    perceptions: Optional[Decimal] = None
+    perceptions_breakdown: List[PerceptionEntrySchema] = Field(default_factory=list)
+
     other_taxes: Optional[Decimal] = None
     grand_total: Decimal
 
@@ -157,6 +178,7 @@ class TotalsSchema(BaseModel):
         "discounts",
         "withholding",
         "withholding_percent",
+        "perceptions",
         "other_taxes",
         "grand_total",
         mode="before",
@@ -176,6 +198,7 @@ class TotalsSchema(BaseModel):
             "discounts",
             "withholding",
             "withholding_percent",
+            "perceptions",
             "other_taxes",
             "grand_total",
         ]
@@ -183,6 +206,7 @@ class TotalsSchema(BaseModel):
             val = getattr(self, f, None)
             if isinstance(val, Decimal):
                 object.__setattr__(self, f, _q2(val))
+
         # Redondeo en breakdowns
         vbd = []
         for v in self.vat_breakdown:
@@ -190,6 +214,7 @@ class TotalsSchema(BaseModel):
             v.amount = _q2(v.amount)
             vbd.append(v)
         object.__setattr__(self, "vat_breakdown", vbd)
+
         dbd = []
         for d in self.discounts_breakdown:
             if d.percent is not None:
@@ -197,6 +222,7 @@ class TotalsSchema(BaseModel):
             d.amount = _q2(d.amount)
             dbd.append(d)
         object.__setattr__(self, "discounts_breakdown", dbd)
+
         wbd = []
         for w in self.withholdings_breakdown:
             if w.percent is not None:
@@ -204,6 +230,15 @@ class TotalsSchema(BaseModel):
             w.amount = _q2(w.amount)
             wbd.append(w)
         object.__setattr__(self, "withholdings_breakdown", wbd)
+
+        pbd = []
+        for p in self.perceptions_breakdown:
+            if p.percent is not None:
+                p.percent = _q2(p.percent)
+            p.amount = _q2(p.amount)
+            pbd.append(p)
+        object.__setattr__(self, "perceptions_breakdown", pbd)
+
         return self
 
 
