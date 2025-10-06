@@ -86,11 +86,6 @@ class MetaSchema(BaseModel):
 # Respuesta global (batch)
 # =========================
 class TaxIdBatchResponse(BaseModel):
-    """
-    'results' tiene una entrada por cada primary_amount (preservando orden y multiplicidad).
-    'status' global: ok | partial_error | error (se ajusta automáticamente).
-    """
-
     model_config = ConfigDict(extra="forbid")
 
     status: GlobalStatus
@@ -100,8 +95,21 @@ class TaxIdBatchResponse(BaseModel):
     @model_validator(mode="after")
     def _coerce_global_status(self) -> "TaxIdBatchResponse":
         if not self.results:
+            # sin resultados => error global
             object.__setattr__(self, "status", GlobalStatus.ERROR)
             return self
 
         oks = sum(1 for r in self.results if r.status == "ok")
         errs = sum(1 for r in self.results if r.status == "error")
+
+        # Ajusta al enum/valores que tengas definidosÑ
+        if errs == 0:
+            object.__setattr__(self, "status", GlobalStatus.OK)  # o "ok"
+        elif oks == 0:
+            object.__setattr__(self, "status", GlobalStatus.ERROR)  # o "error"
+        else:
+            object.__setattr__(
+                self, "status", GlobalStatus.PARTIAL_ERROR
+            )  # o "partial_error"
+
+        return self
