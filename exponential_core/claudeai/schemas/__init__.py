@@ -40,6 +40,8 @@ from .purchase_order import (
 
 from .percepciones import ArTaxes, PercepcionAR, PercepcionesResponse
 
+from .fileds_to_update import DocumentMetadataSchema
+
 __all__ = [
     "ConfidenceFactorsSchema",
     "MetadataSchema",
@@ -72,4 +74,5 @@ __all__ = [
     "ArTaxes",
     "PercepcionAR",
     "PercepcionesResponse",
+    "DocumentMetadataSchema",
 ]

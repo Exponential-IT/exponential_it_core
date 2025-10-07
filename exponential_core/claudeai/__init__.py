@@ -40,6 +40,7 @@ from exponential_core.claudeai.schemas import (
     ArTaxes,
     PercepcionAR,
     PercepcionesResponse,
+    DocumentMetadataSchema,
 )
 
 
@@ -84,4 +85,5 @@ __all__ = [
     "ArTaxes",
     "PercepcionAR",
     "PercepcionesResponse",
+    "DocumentMetadataSchema",
 ]
