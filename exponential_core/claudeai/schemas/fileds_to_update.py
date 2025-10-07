@@ -159,6 +159,8 @@ class DocumentMetadataSchema(BaseModel):
         default=None,
         description="Fecha de vencimiento del CAE en ISO (YYYY-MM-DD) si fue posible normalizar.",
     )
+    inv_id: Optional[int] = Field(default=None)
+    purchase_order_number: Optional[str] = Field(default=None)
 
     # --- Validaciones y normalizaciones ---
 
