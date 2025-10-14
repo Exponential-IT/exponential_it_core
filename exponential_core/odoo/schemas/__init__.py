@@ -1,6 +1,6 @@
 # exponential_core/odoo/schemas/__init__.py
 
-from .invoice import InvoiceCreateSchema, InvoiceLineSchema, InvoiceCreateSchemaV18
+from .invoice import InvoiceCreateSchema, InvoiceLineSchema
 from .product import ProductCreateSchema, ProductCreateSchemaV18
 from .supplier import SupplierCreateSchema
 from .partnet_address import AddressCreateSchema
@@ -12,7 +12,6 @@ from .analytics_accounts import AnalyticsSchemaResponse, AnalyticsSchema
 __all__ = [
     "InvoiceCreateSchema",
     "InvoiceLineSchema",
-    "InvoiceCreateSchemaV18",
     "ProductCreateSchema",
     "ProductCreateSchemaV18",
     "SupplierCreateSchema",
