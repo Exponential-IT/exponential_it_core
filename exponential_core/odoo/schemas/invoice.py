@@ -53,7 +53,7 @@ class InvoiceLineSchema(BaseSchema):
         payload = {
             "quantity": self.quantity,
             "price_unit": self.price_unit,
-            "discount": self.discount,
+            "discount": self.discount or 0.0,  # evita None en Odoo
         }
 
         if self.product_id is not None:
@@ -65,14 +65,13 @@ class InvoiceLineSchema(BaseSchema):
             )
         else:
             # Modo sin product_id: enviar la descripción obligatoria
-            payload.update(
-                {
-                    "name": self.name,
-                }
-            )
+            payload.update({"name": self.name})
 
         if self.tax_ids:
             payload["tax_ids"] = [(6, 0, self.tax_ids)]
+
+        if self.analytic_distribution is not None:
+            payload["analytic_distribution"] = {self.analytic_distribution: 100.0}
 
         return payload
 
@@ -107,39 +106,5 @@ class InvoiceCreateSchema(BaseSchema):
             ),
             "date": self.date.isoformat() if self.date else None,
             "to_check": self.to_check,
-            "invoice_line_ids": [(0, 0, line.as_odoo_payload()) for line in self.lines],
-        }
-
-
-class InvoiceCreateSchemaV18(BaseSchema):
-    partner_id: int = Field(..., description="ID del proveedor en Odoo")
-    ref: Optional[str] = Field(None, description="Número o referencia de la factura")
-    payment_reference: Optional[str] = Field(
-        None, description="Referencia de pago, puede ser igual a ref"
-    )
-    invoice_date: Optional[datetime] = Field(None, description="Fecha de la factura")
-    date: Optional[datetime] = Field(None, description="Fecha contable")
-    checked: bool = Field(
-        False, description="Debe marcarse si la factura fue revisada."
-    )
-    lines: List[InvoiceLineSchema] = Field(..., description="Líneas de la factura")
-
-    # 💡 Normalización de strings vacíos a None
-    @field_validator("ref", "payment_reference", mode="before")
-    @classmethod
-    def normalize_empty_fields(cls, v):
-        return normalize_empty_string(v)
-
-    def transform_payload(self, data: dict) -> dict:
-        return {
-            "partner_id": self.partner_id,
-            "move_type": "in_invoice",
-            "ref": self.ref,
-            "payment_reference": self.payment_reference or self.ref,
-            "invoice_date": (
-                self.invoice_date.isoformat() if self.invoice_date else None
-            ),
-            "date": self.date.isoformat() if self.date else None,
-            "checked": self.checked,
             "invoice_line_ids": [(0, 0, line.as_odoo_payload()) for line in self.lines],
         }
