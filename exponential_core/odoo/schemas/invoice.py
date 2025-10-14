@@ -18,6 +18,7 @@ class InvoiceLineSchema(BaseSchema):
 
     quantity: float = Field(1.0, description="Cantidad del producto")
     price_unit: float = Field(..., description="Precio unitario del producto")
+    analytic_distribution: Optional[int] = Field(None, description="Cuenta analítica")
     discount: Optional[float] = Field(
         None, description="Descuento por ítem (porcentaje)"
     )

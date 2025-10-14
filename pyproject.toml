@@ -1,6 +1,6 @@
 [project]
 name = "exponential-core"
-version = "v1.2.28-beta"
+version = "v1.2.29-beta"
 description = "Librería compartida para excepciones, logging y utilidades comunes de Exponential IT"
 authors = [{ name = "Equipo Exponential IT", email = "john.rincon@exponentialit.net" }]
 readme = "README.md"
