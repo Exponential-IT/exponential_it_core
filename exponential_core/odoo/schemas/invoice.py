@@ -1,9 +1,41 @@
 from pydantic import Field, field_validator, model_validator
-from typing import List, Optional
-from datetime import date as dt_date
+from typing import List, Optional, Union
+from datetime import date as dt_date, datetime as dt_datetime
 
 from exponential_core.odoo.schemas.base import BaseSchema
 from exponential_core.odoo.schemas.normalizers import normalize_empty_string
+
+
+# ---- helper: coerción de date ----
+def _to_date_or_passthrough(
+    v: Union[None, dt_date, dt_datetime, str],
+) -> Optional[dt_date]:
+    """
+    - None -> None
+    - date -> date
+    - datetime -> .date()
+    - str -> intenta parsear (YYYY-MM-DD, DD-MM-YYYY, DD/MM/YYYY, YYYY/MM/DD)
+    - otro tipo -> pásalo tal cual para que Pydantic emita su error estándar
+    """
+    if v is None:
+        return None
+    if isinstance(v, dt_date) and not isinstance(v, dt_datetime):
+        return v
+    if isinstance(v, dt_datetime):
+        return v.date()
+    if isinstance(v, str):
+        s = v.strip()
+        if not s:
+            return None
+        from datetime import datetime as _dt
+
+        for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y", "%Y/%m/%d"):
+            try:
+                return _dt.strptime(s, fmt).date()
+            except ValueError:
+                continue
+        return v
+    return v
 
 
 class InvoiceLineSchema(BaseSchema):
@@ -56,40 +88,38 @@ class InvoiceLineSchema(BaseSchema):
             raise ValueError("discount debe estar entre 0 y 100")
         return v
 
+    @field_validator("tax_ids", mode="after")
+    @classmethod
+    def _dedup_tax_ids(cls, v: List[int]) -> List[int]:
+        # enteros, sin repetidos preservando orden
+        return list(dict.fromkeys(int(x) for x in v if x is not None))
+
     # ---------- XOR product_id vs name ----------
     @model_validator(mode="after")
     def _ensure_one_of(self):
         has_pid = self.product_id is not None
         has_name = self.name is not None and self.name != ""
         if has_pid == has_name:
-            # True==True (ambos) o False==False (ninguno) -> error
             raise ValueError(
                 "Debes proporcionar exactamente uno: 'product_id' o 'name' (pero no ambos)."
             )
         return self
 
     # ---------- Payload ----------
-    def as_odoo_payload(self) -> dict:
+    def transform_payload(self, data: dict | None = None) -> dict:
         """
-        Devuelve el dict listo para Odoo (para usar con (0, 0, payload)).
-        - Si product_id está presente, usamos '/' como name (Odoo lo permite y rellena la descripción).
-        - Si usamos name (sin product_id), enviamos solo la descripción.
+        Implementación requerida por BaseSchema:
+        construye el payload final para Odoo.
         """
         payload = {
             "quantity": self.quantity,
             "price_unit": self.price_unit,
-            "discount": self.discount or 0.0,  # evita None en Odoo
+            "discount": self.discount or 0.0,
         }
 
         if self.product_id is not None:
-            payload.update(
-                {
-                    "product_id": self.product_id,
-                    "name": "/",  # Requerido por Odoo cuando se pasa product_id
-                }
-            )
+            payload.update({"product_id": self.product_id, "name": "/"})
         else:
-            # Modo sin product_id: enviar la descripción obligatoria
             payload.update({"name": self.name or "/"})
 
         if self.tax_ids:
@@ -101,10 +131,6 @@ class InvoiceLineSchema(BaseSchema):
 
         return payload
 
-    # ✅ Implementación requerida por BaseSchema (evita la clase abstracta)
-    def transform_payload(self, data: dict | None = None) -> dict:
-        return self.as_odoo_payload()
-
 
 class InvoiceCreateSchema(BaseSchema):
     partner_id: int = Field(..., description="ID del proveedor en Odoo")
@@ -113,12 +139,13 @@ class InvoiceCreateSchema(BaseSchema):
         None, description="Referencia de pago, puede ser igual a ref"
     )
 
-    # ✅ Fechas como 'date' (Odoo espera YYYY-MM-DD sin hora)
+    # Fechas como 'date' (Odoo espera YYYY-MM-DD sin hora)
     invoice_date: Optional[dt_date] = Field(None, description="Fecha de la factura")
     invoice_date_due: Optional[dt_date] = Field(
         None, description="Fecha de pago/vencimiento de la factura"
     )
     date: Optional[dt_date] = Field(None, description="Fecha contable")
+
     to_check: bool = Field(
         True, description="Debe marcarse si la factura necesita revisión"
     )
@@ -130,6 +157,12 @@ class InvoiceCreateSchema(BaseSchema):
     def normalize_empty_fields(cls, v):
         return normalize_empty_string(v)
 
+    # 👇 Coerción de fechas ANTES de que Pydantic intente castear a `date`
+    @field_validator("invoice_date", "invoice_date_due", "date", mode="before")
+    @classmethod
+    def _coerce_dates(cls, v):
+        return _to_date_or_passthrough(v)
+
     # ---------- Reglas de negocio ----------
     @model_validator(mode="after")
     def _must_have_lines(self):
@@ -137,7 +170,10 @@ class InvoiceCreateSchema(BaseSchema):
             raise ValueError("Debe incluir al menos una línea de factura")
         return self
 
-    def transform_payload(self) -> dict:
+    def transform_payload(self, data: dict | None = None) -> dict:
+        """
+        Construye el payload final para Odoo (move_type=in_invoice).
+        """
         return {
             "partner_id": self.partner_id,
             "move_type": "in_invoice",
@@ -145,11 +181,11 @@ class InvoiceCreateSchema(BaseSchema):
             "payment_reference": self.payment_reference or self.ref,
             "invoice_date": (
                 self.invoice_date.isoformat() if self.invoice_date else None
-            ),  # YYYY-MM-DD
+            ),
             "invoice_date_due": (
                 self.invoice_date_due.isoformat() if self.invoice_date_due else None
-            ),  # YYYY-MM-DD
-            "date": self.date.isoformat() if self.date else None,  # YYYY-MM-DD
+            ),
+            "date": self.date.isoformat() if self.date else None,
             "to_check": self.to_check,
             "invoice_line_ids": [(0, 0, line.as_odoo_payload()) for line in self.lines],
         }
