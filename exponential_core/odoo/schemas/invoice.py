@@ -68,6 +68,7 @@ class InvoiceLineSchema(BaseSchema):
             )
         return self
 
+    # ---------- Payload ----------
     def as_odoo_payload(self) -> dict:
         """
         Devuelve el dict listo para Odoo (para usar con (0, 0, payload)).
@@ -89,7 +90,6 @@ class InvoiceLineSchema(BaseSchema):
             )
         else:
             # Modo sin product_id: enviar la descripción obligatoria
-            # (por si acaso, reforzamos que no sea cadena vacía)
             payload.update({"name": self.name or "/"})
 
         if self.tax_ids:
@@ -100,6 +100,9 @@ class InvoiceLineSchema(BaseSchema):
             payload["analytic_distribution"] = {self.analytic_distribution: 100.0}
 
         return payload
+
+    def transform_payload(self, data: dict | None = None) -> dict:
+        return self.as_odoo_payload()
 
 
 class InvoiceCreateSchema(BaseSchema):
