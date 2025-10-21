@@ -101,6 +101,7 @@ class InvoiceLineSchema(BaseSchema):
 
         return payload
 
+    # ✅ Implementación requerida por BaseSchema (evita la clase abstracta)
     def transform_payload(self, data: dict | None = None) -> dict:
         return self.as_odoo_payload()
 
@@ -144,11 +145,11 @@ class InvoiceCreateSchema(BaseSchema):
             "payment_reference": self.payment_reference or self.ref,
             "invoice_date": (
                 self.invoice_date.isoformat() if self.invoice_date else None
-            ),
+            ),  # YYYY-MM-DD
             "invoice_date_due": (
                 self.invoice_date_due.isoformat() if self.invoice_date_due else None
-            ),
-            "date": self.date.isoformat() if self.date else None,
+            ),  # YYYY-MM-DD
+            "date": self.date.isoformat() if self.date else None,  # YYYY-MM-DD
             "to_check": self.to_check,
             "invoice_line_ids": [(0, 0, line.as_odoo_payload()) for line in self.lines],
         }
