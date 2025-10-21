@@ -1,9 +1,15 @@
 from __future__ import annotations
 
 from typing import List, Optional, Iterable
+from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from exponential_core.claudeai.enums.tax_ids import ContextLabel, TaxIdType
+
+
+# ============================================================
+# 🔧 Utilidades de normalización
+# ============================================================
 
 
 def _norm_na(v: Optional[str]) -> str:
@@ -15,6 +21,7 @@ def _norm_na(v: Optional[str]) -> str:
 
 
 def _dedup_keep_order(xs: Optional[Iterable[str]]) -> list[str]:
+    """Elimina duplicados preservando el orden."""
     seen = set()
     out: list[str] = []
     for x in xs or []:
@@ -26,7 +33,43 @@ def _dedup_keep_order(xs: Optional[Iterable[str]]) -> list[str]:
     return out[:3]  # máximo 3
 
 
-# ---------- Sub-modelos ----------
+def _parse_to_dd_mm_yyyy_or_none_or_na(
+    v: Optional[str], none_as_na: bool
+) -> Optional[str] | str:
+    """
+    - Si v es None/""/"N/A"/"NULL": retorna None si none_as_na=False (para due_date),
+      o "N/A" si none_as_na=True (para invoice_date).
+    - Si es string con fecha válida, normaliza a DD-MM-YYYY.
+    - Si no se puede parsear, retorna None (due_date) o "N/A" (invoice_date).
+    """
+    if v is None:
+        return "N/A" if none_as_na else None
+    s = str(v).strip()
+    if not s or s.upper() in {"N/A", "NULL"}:
+        return "N/A" if none_as_na else None
+
+    candidates = [
+        "%d-%m-%Y",
+        "%d/%m/%Y",
+        "%Y-%m-%d",
+        "%Y/%m/%d",
+        "%d.%m.%Y",
+        "%d %m %Y",
+    ]
+    for fmt in candidates:
+        try:
+            dt = datetime.strptime(s, fmt).date()
+            return dt.strftime("%d-%m-%Y")
+        except ValueError:
+            continue
+    return "N/A" if none_as_na else None
+
+
+# ============================================================
+# 🏠 Submodelos
+# ============================================================
+
+
 class AddressSchema(BaseModel):
     model_config = ConfigDict(extra="ignore", use_enum_values=True)
 
@@ -101,16 +144,41 @@ class PartySchema(BaseModel):
         return _dedup_keep_order(v)
 
 
+# ============================================================
+# 📄 Metadatos de factura
+# ============================================================
+
+
 class InvoiceInfoSchema(BaseModel):
     model_config = ConfigDict(extra="ignore", use_enum_values=True)
 
-    invoice_date: str = "N/A"
+    invoice_date: str = "N/A"  # DD-MM-YYYY o "N/A"
     invoice_number: str = "N/A"
+    due_date: Optional[str] = None  # DD-MM-YYYY o None
 
-    @field_validator("invoice_date", "invoice_number", mode="before")
+    @field_validator("invoice_number", mode="before")
     @classmethod
-    def _norm_text(cls, v: Optional[str]) -> str:
+    def _norm_invoice_number(cls, v: Optional[str]) -> str:
         return _norm_na(v)
+
+    @field_validator("invoice_date", mode="before")
+    @classmethod
+    def _norm_invoice_date(cls, v: Optional[str]) -> str:
+        # Para invoice_date: si no hay fecha o no parsea -> "N/A"
+        out = _parse_to_dd_mm_yyyy_or_none_or_na(v, none_as_na=True)
+        return out  # siempre str
+
+    @field_validator("due_date", mode="before")
+    @classmethod
+    def _norm_due_date(cls, v: Optional[str]) -> Optional[str]:
+        # Para due_date: si no hay fecha o no parsea -> None
+        out = _parse_to_dd_mm_yyyy_or_none_or_na(v, none_as_na=False)
+        return out  # Optional[str]
+
+
+# ============================================================
+# 🧾 Tax IDs detectados
+# ============================================================
 
 
 class DetectedTaxIdSchema(BaseModel):
@@ -154,6 +222,11 @@ class DetectedTaxIdSchema(BaseModel):
             return v  # dejar que Pydantic valide/falle
 
 
+# ============================================================
+# ⚖️ Notas fiscales (Sujeto Pasivo)
+# ============================================================
+
+
 class TaxNotesSchema(BaseModel):
     """
     Bloque adicional del prompt:
@@ -174,7 +247,11 @@ class TaxNotesSchema(BaseModel):
         return _dedup_keep_order(v)
 
 
-# ---------- Raíz ----------
+# ============================================================
+# 🌍 Raíz
+# ============================================================
+
+
 class PartyExtractionSchema(BaseModel):
     """Raíz del resultado de identificación de CLIENT y SUPPLIER + metadatos de factura."""
 
