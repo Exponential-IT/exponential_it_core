@@ -14,7 +14,7 @@ class DocumentTypeLetter(StrEnum):
     M = "M"
     E = "E"
     T = "T"
-    NA = "N/A"  # por compatibilidad si quisieras mapearlo; no se usa por defecto
+    NA = "N/A"
 
 
 class VoucherType(StrEnum):
@@ -23,17 +23,28 @@ class VoucherType(StrEnum):
     DEBIT_NOTE = "debit_note"
 
 
+# Mapeo estándar AFIP: Código -> Tipo de comprobante
+AFIP_CODE_TO_VOUCHER = {
+    "1": VoucherType.INVOICE,  # Factura A
+    "2": VoucherType.DEBIT_NOTE,  # Nota de Débito A
+    "3": VoucherType.CREDIT_NOTE,  # Nota de Crédito A
+    "6": VoucherType.INVOICE,  # Factura B
+    "7": VoucherType.DEBIT_NOTE,  # Nota de Débito B
+    "8": VoucherType.CREDIT_NOTE,  # Nota de Crédito B
+    "11": VoucherType.INVOICE,  # Factura C
+    "12": VoucherType.DEBIT_NOTE,  # Nota de Débito C
+    "13": VoucherType.CREDIT_NOTE,  # Nota de Crédito C
+    "51": VoucherType.INVOICE,  # Factura M
+    "52": VoucherType.DEBIT_NOTE,  # Nota de Débito M
+    "53": VoucherType.CREDIT_NOTE,  # Nota de Crédito M
+}
+
+
 _DOC_LETTER_RE = re.compile(
     r"\b(Factura|Nota\s+de\s+Cr[eé]dito|Nota\s+de\s+D[eé]bito)\s*([ABCMET])\b", re.I
 )
 _DOC_LETTER_TIGHT_RE = re.compile(r"\bFactura\s*([ABCMET])\b", re.I)
-_DOC_LETTER_PACKED_RE = re.compile(r"\bFactura?([ABCMET])\b", re.I)  # ej. "FACTURAA"
-
-# Para detectar el tipo de comprobante
-_VOUCHER_TYPE_RE = re.compile(
-    r"\b(FACTURA|INVOICE|NOTA\s+DE\s+CR[EÉ]DITO|CREDIT\s+NOTE|NOTA\s+DE\s+D[EÉ]BITO|DEBIT\s+NOTE)\b",
-    re.I,
-)
+_DOC_LETTER_PACKED_RE = re.compile(r"\bFactura?([ABCMET])\b", re.I)
 
 _CODE_RE = re.compile(
     r"\b(COD(?:\.|IGO)?|C[óo]d(?:\.|igo)?|Cod\.?\.?Nro\.?)\s*[:.]?\s*(\d{1,3})\b", re.I
@@ -135,23 +146,54 @@ def _extract_doc_letter(s: str) -> Optional[str]:
     return None
 
 
-def _extract_voucher_type(s: str) -> str:
+def _extract_voucher_type_from_code(code: str) -> Optional[str]:
     """
-    Extrae el tipo de comprobante del texto.
+    Determina el tipo de comprobante basado en el código AFIP.
+    Retorna el enum VoucherType correspondiente.
+    """
+    if not code:
+        return None
+
+    # Normalizar el código (remover ceros a la izquierda)
+    code_num = code.strip().lstrip("0")
+
+    return AFIP_CODE_TO_VOUCHER.get(code_num)
+
+
+def _extract_voucher_type(s: str, doc_code: Optional[str] = None) -> str:
+    """
+    Extrae el tipo de comprobante del texto o valida un valor ya clasificado.
+    Maneja tres casos:
+    1. Ya viene clasificado: "invoice", "credit_note", "debit_note" -> retornar tal cual
+    2. Texto del documento: "FACTURA", "NOTA DE DÉBITO", etc -> clasificar
+    3. No encontrado: usar doc_code como fallback
+
     Retorna: "invoice", "credit_note", "debit_note"
     Default: "invoice"
     """
     if not s:
+        # Fallback al código si no hay texto
+        if doc_code:
+            voucher = _extract_voucher_type_from_code(doc_code)
+            if voucher:
+                return voucher
         return VoucherType.INVOICE
 
+    s_lower = s.lower().strip()
+
+    # Caso 1: Ya viene clasificado correctamente (del LLM o validación previa)
+    if s_lower in {"invoice", "credit_note", "debit_note"}:
+        return s_lower
+
+    # Caso 2: Texto del documento en español/inglés
     s_upper = s.upper()
 
+    # Nota de Crédito (ESPAÑOL e INGLÉS) - buscar primero las más específicas
     if any(
         term in s_upper
         for term in [
             "NOTA DE CREDITO",
             "NOTA DE CRÉDITO",
-            "NOTA DE CREDITO",
             "NOTADECREDITO",
             "CREDIT NOTE",
             "CREDITNOTE",
@@ -159,12 +201,12 @@ def _extract_voucher_type(s: str) -> str:
     ):
         return VoucherType.CREDIT_NOTE
 
+    # Nota de Débito (ESPAÑOL e INGLÉS)
     if any(
         term in s_upper
         for term in [
             "NOTA DE DEBITO",
             "NOTA DE DÉBITO",
-            "NOTA DE DEBITO",
             "NOTADEDEBITO",
             "DEBIT NOTE",
             "DEBITNOTE",
@@ -172,6 +214,17 @@ def _extract_voucher_type(s: str) -> str:
     ):
         return VoucherType.DEBIT_NOTE
 
+    # Factura/Invoice
+    if any(term in s_upper for term in ["FACTURA", "INVOICE"]):
+        return VoucherType.INVOICE
+
+    # Caso 3: Si no encontró nada en el texto, usar el código como fallback
+    if doc_code:
+        voucher = _extract_voucher_type_from_code(doc_code)
+        if voucher:
+            return voucher
+
+    # Por defecto es factura
     return VoucherType.INVOICE
 
 
@@ -252,11 +305,25 @@ class DocumentMetadataSchema(BaseModel):
 
     @field_validator("voucher_type", mode="before")
     @classmethod
-    def _v_voucher_type(cls, v):
+    def _v_voucher_type(cls, v, info):
+        """
+        Valida y normaliza el voucher_type.
+        Usa el document_code como fallback si el texto no es claro.
+        """
+        # Obtener el document_code si ya fue validado
+        doc_code = info.data.get("document_code")
+
         if v is None:
+            # Intentar inferir del código
+            if doc_code:
+                voucher = _extract_voucher_type_from_code(doc_code)
+                if voucher:
+                    return voucher
             return VoucherType.INVOICE
+
         if isinstance(v, str):
-            return _extract_voucher_type(v)
+            return _extract_voucher_type(v, doc_code)
+
         return v
 
     @field_validator("cae", mode="before")
