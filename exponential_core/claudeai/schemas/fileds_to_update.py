@@ -146,20 +146,32 @@ def _extract_voucher_type(s: str) -> str:
 
     s_upper = s.upper()
 
-    # Nota de Crédito
     if any(
         term in s_upper
-        for term in ["NOTA DE CREDITO", "NOTA DE CRÉDITO", "CREDIT NOTE"]
+        for term in [
+            "NOTA DE CREDITO",
+            "NOTA DE CRÉDITO",
+            "NOTA DE CREDITO",
+            "NOTADECREDITO",
+            "CREDIT NOTE",
+            "CREDITNOTE",
+        ]
     ):
         return VoucherType.CREDIT_NOTE
 
-    # Nota de Débito
     if any(
-        term in s_upper for term in ["NOTA DE DEBITO", "NOTA DE DÉBITO", "DEBIT NOTE"]
+        term in s_upper
+        for term in [
+            "NOTA DE DEBITO",
+            "NOTA DE DÉBITO",
+            "NOTA DE DEBITO",
+            "NOTADEDEBITO",
+            "DEBIT NOTE",
+            "DEBITNOTE",
+        ]
     ):
         return VoucherType.DEBIT_NOTE
 
-    # Por defecto es factura
     return VoucherType.INVOICE
 
 
