@@ -12,14 +12,28 @@ class DocumentTypeLetter(StrEnum):
     B = "B"
     C = "C"
     M = "M"
+    E = "E"
+    T = "T"
     NA = "N/A"  # por compatibilidad si quisieras mapearlo; no se usa por defecto
 
 
+class VoucherType(StrEnum):
+    INVOICE = "invoice"
+    CREDIT_NOTE = "credit_note"
+    DEBIT_NOTE = "debit_note"
+
+
 _DOC_LETTER_RE = re.compile(
-    r"\b(Factura|Nota\s+de\s+Cr[eé]dito|Nota\s+de\s+D[eé]bito)\s*([ABCM])\b", re.I
+    r"\b(Factura|Nota\s+de\s+Cr[eé]dito|Nota\s+de\s+D[eé]bito)\s*([ABCMET])\b", re.I
 )
-_DOC_LETTER_TIGHT_RE = re.compile(r"\bFactura\s*([ABCM])\b", re.I)
-_DOC_LETTER_PACKED_RE = re.compile(r"\bFactura?([ABCM])\b", re.I)  # ej. "FACTURAA"
+_DOC_LETTER_TIGHT_RE = re.compile(r"\bFactura\s*([ABCMET])\b", re.I)
+_DOC_LETTER_PACKED_RE = re.compile(r"\bFactura?([ABCMET])\b", re.I)  # ej. "FACTURAA"
+
+# Para detectar el tipo de comprobante
+_VOUCHER_TYPE_RE = re.compile(
+    r"\b(FACTURA|INVOICE|NOTA\s+DE\s+CR[EÉ]DITO|CREDIT\s+NOTE|NOTA\s+DE\s+D[EÉ]BITO|DEBIT\s+NOTE)\b",
+    re.I,
+)
 
 _CODE_RE = re.compile(
     r"\b(COD(?:\.|IGO)?|C[óo]d(?:\.|igo)?|Cod\.?\.?Nro\.?)\s*[:.]?\s*(\d{1,3})\b", re.I
@@ -30,7 +44,9 @@ _CODE_DIGITS_RE = re.compile(r"\b(\d{1,3})\b")
 _DOCNUM_RE = re.compile(r"\b(?P<pv>\d{4,5})\s*[-\s]\s*(?P<num>\d{6,8})\b")
 
 # 14 dígitos de CAE/CAEA
-_CAE_DIGITS_RE = re.compile(r"\b(CAE|CAEA)\s*[:#]?\s*([0-9\.\s-]{10,})\b", re.I)
+_CAE_DIGITS_RE = re.compile(
+    r"\b(CAE|CAEA)\s*[N°:#]?\s*[:.]?\s*([0-9\.\s-]{10,})\b", re.I
+)
 _ONLY_DIGITS_RE = re.compile(r"\D+")
 
 # fechas comunes dd/mm/yyyy o yyyy-mm-dd
@@ -51,7 +67,7 @@ def _normalize_doc_number(s: str) -> Optional[str]:
         return None
     m = _DOCNUM_RE.search(s)
     if not m:
-        # intento “libre”: si hay dos grupos de dígitos pegados
+        # intento "libre": si hay dos grupos de dígitos pegados
         digits = re.findall(r"\d+", s)
         if len(digits) >= 2:
             pv, num = digits[0], digits[1]
@@ -110,13 +126,41 @@ def _extract_doc_letter(s: str) -> Optional[str]:
             # la letra puede estar en el último grupo
             letter = m.groups()[-1]
             letter = letter.strip().upper()
-            if letter in {"A", "B", "C", "M"}:
+            if letter in {"A", "B", "C", "M", "E", "T"}:
                 return letter
     # fallback: si la cadena es solo una letra válida
     s1 = s.strip().upper()
-    if s1 in {"A", "B", "C", "M"}:
+    if s1 in {"A", "B", "C", "M", "E", "T"}:
         return s1
     return None
+
+
+def _extract_voucher_type(s: str) -> str:
+    """
+    Extrae el tipo de comprobante del texto.
+    Retorna: "invoice", "credit_note", "debit_note"
+    Default: "invoice"
+    """
+    if not s:
+        return VoucherType.INVOICE
+
+    s_upper = s.upper()
+
+    # Nota de Crédito
+    if any(
+        term in s_upper
+        for term in ["NOTA DE CREDITO", "NOTA DE CRÉDITO", "CREDIT NOTE"]
+    ):
+        return VoucherType.CREDIT_NOTE
+
+    # Nota de Débito
+    if any(
+        term in s_upper for term in ["NOTA DE DEBITO", "NOTA DE DÉBITO", "DEBIT NOTE"]
+    ):
+        return VoucherType.DEBIT_NOTE
+
+    # Por defecto es factura
+    return VoucherType.INVOICE
 
 
 def _extract_doc_code(s: str) -> Optional[str]:
@@ -138,19 +182,23 @@ def _extract_doc_code(s: str) -> Optional[str]:
 class DocumentMetadataSchema(BaseModel):
     """
     Esquema de salida del prompt de metadatos AFIP.
-    Todos los campos son opcionales (null si no se encuentran).
+    Todos los campos son opcionales (null si no se encuentran), excepto voucher_type.
     """
 
     model_config = ConfigDict(extra="ignore", use_enum_values=True)
 
     document_type: Optional[DocumentTypeLetter] = Field(
-        default=None, description="Letra del comprobante: A, B, C, M."
+        default=None, description="Letra del comprobante: A, B, C, M, E, T."
     )
     document_code: Optional[str] = Field(
-        default=None, description="Código AFIP (p. ej., 01, 006, 011)."
+        default=None, description="Código AFIP (p. ej., 01, 02, 006, 011)."
     )
     document_number: Optional[str] = Field(
         default=None, description="Número normalizado ####-########."
+    )
+    voucher_type: VoucherType = Field(
+        default=VoucherType.INVOICE,
+        description="Tipo de comprobante: invoice, credit_note, debit_note.",
     )
     cae: Optional[str] = Field(
         default=None, description="Código CAE/CAEA de 14 dígitos."
@@ -189,6 +237,15 @@ class DocumentMetadataSchema(BaseModel):
             return None
         norm = _normalize_doc_number(str(v))
         return norm or None
+
+    @field_validator("voucher_type", mode="before")
+    @classmethod
+    def _v_voucher_type(cls, v):
+        if v is None:
+            return VoucherType.INVOICE
+        if isinstance(v, str):
+            return _extract_voucher_type(v)
+        return v
 
     @field_validator("cae", mode="before")
     @classmethod
