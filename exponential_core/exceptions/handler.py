@@ -4,6 +4,7 @@ import httpx
 from fastapi import Request, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi.encoders import jsonable_encoder  
 from pydantic import ValidationError
 from exponential_core.utils.format_error import format_error_response
 from exponential_core.exceptions.base import CustomAppException
@@ -23,15 +24,30 @@ async def http_exception_handler(request: Request, exc: HTTPException):
         exc_info=exc,
     )
 
-    # Si es 404 o cualquier error normal, respétalo
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={
-            "detail": exc.detail,
+    
+    detail = exc.detail
+
+    if isinstance(detail, dict):
+        # Mantienes tu payload, solo le agregas metadatos
+        content = {
+            **detail,
             "error_type": "HttpException",
             "status_code": exc.status_code,
             "timestamp": timestamp,
-        },
+        }
+    else:
+        # Caso genérico (404, etc.)
+        content = {
+            "detail": detail,
+            "error_type": "HttpException",
+            "status_code": exc.status_code,
+            "timestamp": timestamp,
+        }
+
+    # 🔥 Esto convierte Decimal, datetime, etc. a tipos JSON-safe
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=jsonable_encoder(content),
     )
 
 
