@@ -72,12 +72,12 @@ class InvoiceLineSchema(BaseSchema):
             raise ValueError("quantity debe ser > 0")
         return v
 
-    @field_validator("price_unit", mode="after")
-    @classmethod
-    def _price_nonneg(cls, v: float) -> float:
-        if v < 0:
-            raise ValueError("price_unit no puede ser negativo")
-        return v
+    # @field_validator("price_unit", mode="after")
+    # @classmethod
+    # def _price_nonneg(cls, v: float) -> float:
+    #     if v < 0:
+    #         raise ValueError("price_unit no puede ser negativo")
+    #     return v
 
     @field_validator("discount", mode="after")
     @classmethod
