@@ -2,9 +2,16 @@ from typing import Optional, Union, Literal, Any
 from enum import Enum
 import re
 
-from pydantic import Field, EmailStr, HttpUrl, field_validator, ConfigDict
+from pydantic import (
+    Field,
+    EmailStr,
+    HttpUrl,
+    field_validator,
+    ConfigDict,
+    TypeAdapter,
+)
 
-from exponential_core.odoo.enums import CompanyTypeEnum  # Enum con .COMPANY/.PERSON
+from exponential_core.odoo.enums import CompanyTypeEnum
 from exponential_core.odoo.schemas.base import BaseSchema
 
 
@@ -32,20 +39,34 @@ def _normalize_empty(v: Optional[str]) -> Optional[str]:
     return s
 
 
+_EMAIL_ADAPTER = TypeAdapter(EmailStr)
 _EMAIL_REGEX = re.compile(r"[\w\.\+\-]+@[\w\.\-]+\.\w+")
+
+
+def _validate_email_strict(s: str) -> Optional[str]:
+    """
+    Usa el validador real de Pydantic para EmailStr.
+    Si es válido → devuelve el email como str.
+    Si no → devuelve None.
+    Nunca lanza excepción.
+    """
+    try:
+        value = _EMAIL_ADAPTER.validate_python(s)
+        return str(value)
+    except Exception:
+        return None
 
 
 def _normalize_email(v: Any) -> Optional[str]:
     """
     Estrategia:
     - Si viene vacío / placeholder → None
-    - Si viene un EmailStr → str(email)
-    - Si viene un string limpio tipo "foo@bar.com" → se valida; si es válido, se devuelve
-    - Si viene un string sucio tipo "vibrahotels.com - maritimo@vibrahotels.com":
-        - Se busca el primer patrón con regex
-        - Si se encuentra y es válido → se devuelve
-        - Si no → None
-    - JAMÁS lanza ValueError → nunca dispara 422 por email inválido.
+    - Si viene EmailStr → str(email)
+    - Si viene string:
+        1. Intentar validar el string completo como email.
+        2. Si falla, buscar el primer patrón tipo email dentro del texto.
+        3. Si nada funciona → None.
+    Nunca lanza excepción → los opcionales no rompen la validación.
     """
     if v is None:
         return None
@@ -57,20 +78,16 @@ def _normalize_email(v: Any) -> Optional[str]:
     if not s:
         return None
 
-    try:
-        valid = EmailStr(s)
-        return str(valid)
-    except ValueError:
-        match = _EMAIL_REGEX.search(s)
-        if not match:
-            return None
+    strict = _validate_email_strict(s)
+    if strict is not None:
+        return strict
 
-        candidate = match.group(0)
-        try:
-            valid = EmailStr(candidate)
-            return str(valid)
-        except ValueError:
-            return None
+    match = _EMAIL_REGEX.search(s)
+    if not match:
+        return None
+
+    candidate = match.group(0)
+    return _validate_email_strict(candidate)
 
 
 def _normalize_website(v: Optional[str]) -> Optional[str]:
@@ -83,6 +100,7 @@ def _normalize_website(v: Optional[str]) -> Optional[str]:
 
 
 class SupplierCreateSchema(BaseSchema):
+
     model_config = ConfigDict(use_enum_values=True, extra="ignore")
 
     name: str = Field(..., description="Nombre del proveedor")
@@ -106,7 +124,6 @@ class SupplierCreateSchema(BaseSchema):
     country_id: Optional[int] = Field(None, description="ID del país en Odoo")
     website: Optional[HttpUrl] = Field(None, description="Sitio web del proveedor")
 
-    # Normalizadores de texto
     @field_validator("phone", "street", "zip", "city", mode="before")
     @classmethod
     def _normalize_empty_fields(cls, v):
@@ -122,7 +139,6 @@ class SupplierCreateSchema(BaseSchema):
     def _normalize_website_field(cls, v):
         return _normalize_website(v)
 
-    # Normalizador robusto de company_type
     @field_validator("company_type", mode="before")
     @classmethod
     def _normalize_company_type(cls, v):
@@ -137,9 +153,8 @@ class SupplierCreateSchema(BaseSchema):
             f"company_type inválido: {v!r}. Valores permitidos: 'company' o 'person'."
         )
 
-    # as_odoo_payload local: siempre JSON-safe (HttpUrl/Enum/Decimal/etc.)
     def as_odoo_payload(self) -> dict:
-
+        # mode="json" convierte HttpUrl→str, Enum→str, Decimal→float, etc.
         data = self.model_dump(exclude_none=True, mode="json")
         return self.transform_payload(data)
 
